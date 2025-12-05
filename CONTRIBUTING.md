@@ -1,17 +1,21 @@
-🧭 **Contribution Guidelines**
 
-Thank you for contributing to this project!  
-To maintain clarity, code quality, and structural consistency, please read and follow the guidelines below before making any changes.
+# 🧭 Backend Contribution Guidelines  
+### *(Express · Node.js · MongoDB — JavaScript Only, No Frontend References)*
+
+Thank you for contributing to the backend of this project!  
+These guidelines ensure consistency, structure, and maintainability across the backend codebase.
+
+This document is **100% backend only** — no frontend terminology, no `App.jsx`, no UI structure.
 
 ---
 
-## 📌 1. Workflow & Branching Rules
+# 📌 1. Workflow & Branching Rules
 
-### **Branch Naming Convention**
+## Branch Naming Convention
 
-All development work must be done on a dedicated branch using the following format:
+Use descriptive, PascalCase branch names:
 
-**For new features:**
+### **Features**
 ```
 feature/<PascalCaseFeatureName>
 ```
@@ -20,185 +24,254 @@ Example:
 feature/UserAuthentication
 ```
 
-**For bug fixes:**
+### **Bug Fixes**
 ```
-fix/<PascalCaseIssueName>
+fix/<PascalCaseBugName>
 ```
 Example:
 ```
-fix/NavbarAlignment
+fix/JwtExpiryIssue
 ```
 
-**For enhancements:**
+### **Enhancements / Refactors**
 ```
 enhancement/<PascalCaseImprovement>
+refactor/<PascalCaseRefactor>
 ```
+
+### General Rules
+- ❌ Never push directly to `main`.
+- ✔️ Create branches only from `develop` (or designated development branch).
+- ✔️ Commit frequently with meaningful commit messages:
+  - `feat: add login route`
+  - `fix: correct password hashing bug`
+  - `refactor: cleanup user service`
+- ✔️ PRs must be reviewed before merge.
+- ✔️ Code must pass linting & tests before PR submission.
+
+---
+
+# 📁 2. Backend Folder Structure
+
+Recommended directory layout for Express + MongoDB:
+
+```
+src/
+  app.js               # Express app setup
+  server.js            # Server bootstrap (listen)
+
+  config/
+    index.js           # Centralized configuration loader
+
+  db/
+    index.js           # MongoDB connection
+    migrations/
+    seeds/
+
+  api/
+    routes/
+      userRoutes.js
+      index.js
+    controllers/
+      userController.js
+    validators/
+      userValidator.js
+
+  models/
+    User.js
+
+  services/
+    userService.js
+
+  middlewares/
+    authMiddleware.js
+    errorMiddleware.js
+
+  utils/
+    logger.js
+    asyncHandler.js
+
+  jobs/
+    cronJobs.js
+
+test/
+  user.test.js
+```
+
+---
+
+# 🧱 3. Backend Responsibilities & Separation of Concerns
+
+### **Controllers**
+- Parse request body/params.
+- Call service methods.
+- Return HTTP responses.
+- Contain *no business logic*.
+
+### **Services**
+- Business logic lives here.
+- Talk to models.
+- Maintain reusable domain logic.
+
+### **Models**
+- Mongoose schemas or MongoDB data interaction.
+- Database structure only.
+
+### **Routes**
+- Attach validators, middlewares, and controllers.
+
+### **Middlewares**
+- Authentication
+- Validation
+- Error handling
+- Logging
+- Rate limiting
+
+### **Utils**
+- Pure helper functions only.
+
+---
+
+# 🔐 4. Security Guidelines
+
+- Keep secrets in `.env`, never commit them.
+- Provide `.env.example` to document variables.
+- Validate all incoming data with:
+  - `joi`
+  - `express-validator`
+  - or custom schema validators
+- Use:
+  - `helmet` for security headers
+  - `cors` with proper domain restrictions
+  - rate limiting middleware
+- Never log sensitive data (passwords, tokens).
+- Hash passwords using `bcrypt`.
+
+---
+
+# 🗄️ 5. MongoDB / Mongoose Best Practices
+
+- Keep models simple and descriptive.
+- Use indexes where needed.
+- Avoid unbounded subdocuments — consider referencing.
+- Use migrations when modifying structures.
+- Use `lean()` for readonly queries.
+- Validate schema strictly.
+
+Example model:
+
+```js
+const mongoose = require("mongoose");
+
+const UserSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  passwordHash: { type: String, required: true },
+}, { timestamps: true });
+
+module.exports = mongoose.model("User", UserSchema);
+```
+
+---
+
+# 🧪 6. Testing Standards
+
+Use **Jest** + **Supertest**.
+
+### Required test types:
+- Unit tests for services
+- Integration tests for routes
+- DB tests with `mongodb-memory-server` where possible
+
+### Testing Rules
+- Tests must be deterministic.
+- Tests must clean up after themselves.
+- Coverage should include core logic.
+
+---
+
+# 🧾 7. Error Handling
+
+Use a centralized error middleware.
+
+### Rules:
+- Throw `Error` objects or custom error classes only.
+- Do not expose stack traces in production.
+- Use `asyncHandler` for routes.
+
 Example:
-```
-enhancement/ImproveRoutingFlow
-```
-
-### **General Workflow**
-- ❌ Never push directly to `main` or `master`.
-- ✔️ Create a feature branch before starting work.
-- ✔️ Commit frequently with meaningful messages.
-- ✔️ Open a Pull Request (PR) only when your work is complete and tested.
-- ✔️ PRs must undergo review before merging.
-
-Any discrepancy from these guidelines may lead to required rework or PR rejection.
-
----
-
-## 📁 2. Folder & File Structure Norms
-
-### **Components Structure (`src/components/`)**
-
-```
-components/
-  Navbar/
-    Navbar.jsx
-    Navbar.css
-    index.js
-  Button/
-    Button.jsx
-    Button.css
-    index.js
-  index.js
-```
-
-### **Required Component Rules**
-- Each component must reside in its own folder.
-- File names must follow **PascalCase**.
-- Each folder must include an `index.js` for exporting.
-- All components must also be exported through `src/components/index.js`.
-
-### ❌ What NOT to do
-- Never place **business logic** inside UI components.
-- UI components must remain **purely visual** and state-light.
-- Business logic, API calls, and heavy state must be handled via services, hooks, or context.
-
----
-
-## 📄 3. Pages Structure (`src/pages/`)
-
-```
-pages/
-  Home/
-    Home.jsx
-    index.js
-  Dashboard/
-    Dashboard.jsx
-    index.js
-  index.js
-```
-
-### **Page Rules**
-- Pages represent top-level routes.
-- Pages should delegate rendering to components.
-- Avoid adding unnecessary logic in pages.
-- Pages must be exported through `src/pages/index.js`.
-
----
-
-## 🛣️ 4. Routing Guidelines
-
-`App.jsx` is considered a **core protected file** and contains:
-
-- global routing  
-- top-level layout  
-- shared wrappers & providers  
-
-⚠️ **Do NOT modify routing in App.jsx unless explicitly assigned.**  
-Unauthorized edits will require fixes or lead to PR rejection.
-
----
-
-## 🧱 5. Import & Export Norms
-
-### **Use Barrel Files**
-
-Instead of:
 
 ```js
-import Navbar from "../../components/Navbar/Navbar";
+module.exports = fn => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 ```
 
-Use:
+---
+
+# 📜 8. Logging Standards
+
+- Use a dedicated logger (`winston`, `pino`, etc.).
+- Use levels: `info`, `warn`, `error`, `debug`.
+- Avoid console logs in production code.
+- Never log passwords, tokens, PII.
+
+---
+
+# ♻️ 9. API Versioning
+
+Use versioned routes:
+
+```
+/api/v1/users
+/api/v1/auth/login
+```
+
+Breaking changes require a **new version**, not silent modification.
+
+---
+
+# 📦 10. Environment Management
+
+- Keep all config in `config/index.js`.
+- Never access `process.env` directly throughout the codebase — read through config loader.
+- Example:
 
 ```js
-import { Navbar } from "@/components";
-```
-
-Rules:
-- Never import directly from deep component paths.
-- Always ensure new components/pages are added to their respective barrel exports.
-
----
-
-## ✨ 6. Coding Style & Quality Standards
-
-### **Naming Conventions**
-- **PascalCase** → Components, Pages, Folders  
-- **camelCase** → Variables, functions, hooks, utilities  
-
-Avoid uppercase filenames, special characters, or irrelevant suffixes.
-
-### **Component Rules**
-- Use **functional components** only.
-- Avoid side effects inside render logic.
-- Keep components UI-focused.
-- Extract repeated logic into hooks or utilities.
-
-### **Commit Messages**
-Use clear, conventional messages:
-
-```
-feat: add user profile page
-fix: correct navbar alignment
-refactor: extract table logic into hook
+module.exports = {
+  port: process.env.PORT || 5000,
+  mongoUri: process.env.MONGO_URI,
+  jwtSecret: process.env.JWT_SECRET,
+};
 ```
 
 ---
 
-## ⚠️ 7. Code Review Expectations
+# 📋 11. Pull Request Checklist
 
-Your PR may be rejected if:
+Before opening a PR:
 
-- File structure conventions aren't followed.
-- Barrel exports are missing or incorrect.
-- Business logic appears inside UI components.
-- Naming conventions are ignored.
-- Wrong branch usage.
-- Routing modified without approval.
-
-Code reviews aim to ensure:
-
-- Long-term maintainability  
-- Consistency  
-- Reduced code debt  
-- Clear separation of concerns  
-
-Repeated violations may result in stricter requirements.
+- [ ] Branch follows naming rules  
+- [ ] Lint passes  
+- [ ] Tests updated + passing  
+- [ ] No console.logs left in code  
+- [ ] No sensitive files included  
+- [ ] DB changes include migrations/seeds  
+- [ ] Documentation updated if necessary  
 
 ---
 
-## 🚀 8. Before Submitting a PR
+# 🔁 12. Code Review Expectations
 
-Ensure you have:
+Reviewers will check:
 
-✔ Followed branch naming rules  
-✔ Structured components/pages correctly  
-✔ Added all necessary barrel exports  
-✔ Formatted your code  
-✔ Tested changes locally  
-✔ Written meaningful commit messages  
-✔ Avoided unnecessary file changes  
+- Code readability & clarity  
+- Proper use of controllers/services/models  
+- Error handling correctness  
+- Security hygiene  
+- Validation completeness  
+- Maintainability & future flexibility  
 
 ---
 
-## 🙌 Thank You for Contributing
+# 🙌 Thank You
 
-Following these guidelines helps keep the project **clean, scalable, and maintainable**.  
-Your efforts are truly appreciated!
-
-If you need clarification on any guideline, feel free to ask.
+Your contributions improve the backend’s structure, maintainability, and scalability.
