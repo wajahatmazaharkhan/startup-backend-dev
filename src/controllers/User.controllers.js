@@ -9,48 +9,70 @@ import { SignupValidation, LoginValidation } from "../validator/User.validation.
 
 // signup user controller function //
 export const SignUp = async (req, res) => {
-    try {
-        const data = SignupValidation.parse(req.body);
+  try {
+    const data = SignupValidation.parse(req.body);
 
-        // chaeking for user already existed in database
-        const oldUser = await User.findOne({ email: data.email });
+    // ✅ Check if user already exists
+    const oldUser = await User.findOne({ email: data.email });
 
-        if (oldUser) {
-            return res.status(409).json({ msg: "user already existed", oldUser })
-        }
-
-        const newUser = await User.create({
-            fullname: data.fullname,
-            email: data.email,
-            phone_number: data.phone_number,
-            Password: data.Password,
-        })
-
-        if (!newUser) {
-            return res.status(400).json({ msg: "user not created" })
-        }
-
-        return res.status(200).json({
-            msg: " user created",
-            newUser: {
-                fullname: data.fullname,
-                email: data.email,
-                phone_number: data.phone_number
-            }
-        })
-    } catch (error) {
-        // Zod Validation Error Handling
-        if (error.name === "ZodError") {
-            return res.status(400).json({
-                msg: "Validation error",
-                errors: error.errors,
-            });
-        }
-
-        console.log("Controller Error:", error);
-        return res.status(500).json({ msg: "Internal Server Error" });
+    if (oldUser) {
+      return res.status(409).json({
+        success: false,
+        msg: "User already exists"
+      });
     }
-}
+
+    // ✅ Create user with additional fields
+    const newUser = await User.create({
+      fullname: data.fullname,
+      email: data.email,
+      phone_number: data.phone_number,
+      Password: data.Password, // model hashes it
+      dob: data.dob,
+      gender: data.gender,
+      timezone: data.timezone,
+      preferred_language: data.preferred_language
+    });
+
+    if (!newUser) {
+      return res.status(400).json({
+        success: false,
+        msg: "User not created"
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      msg: "User created successfully",
+      user: {
+        fullname: newUser.fullname,
+        email: newUser.email,
+        phone_number: newUser.phone_number,
+        dob: newUser.dob,
+        gender: newUser.gender,
+        timezone: newUser.timezone,
+        preferred_language: newUser.preferred_language
+      }
+    });
+
+  } catch (error) {
+    // ✅ Zod Validation Error
+    if (error.name === "ZodError") {
+      return res.status(400).json({
+        success: false,
+        msg: "Validation error",
+        errors: error.errors
+      });
+    }
+
+    console.log("Controller Error:", error);
+    return res.status(500).json({
+      success: false,
+      msg: "Internal Server Error"
+    });
+  }
+};
+
 
 // login user controller function //
 export const Login = async (req, res) => {
