@@ -18,6 +18,7 @@ import { connectToDatabase } from "./src/db/db.js";
 import { FormRouter } from "./src/router/Form.router.js";
 import { userRouter } from "./src/router/User.router.js";
 import { RazorpayRouter } from "./src/router/Razorypay.router.js";
+import { AvailabilityRouter } from "./src/router/Availability.router.js"
 
 // ===============================================================
 // 🚀 Create Express App Instance
@@ -68,8 +69,6 @@ app.get("/", (req, res) => {
 // ===============================================================
 // 📌 Register Application Routes
 // ===============================================================
-app.use("/api/form", FormRouter);
-app.use("/api/user", userRouter);
 
 // ===============================================================
 //  Razorpay Instance
@@ -81,6 +80,10 @@ export const instance = new Razorpay({
 });
 
 app.use("/razorpay",RazorpayRouter);
+app.use("/api/form", FormRouter); 
+app.use("/api/user",userRouter);
+app.use("/api/availability", AvailabilityRouter)
+
 
 // Example: http://localhost:4000/api/form/submit
 
