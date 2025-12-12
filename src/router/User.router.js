@@ -1,8 +1,7 @@
 import { Router } from "express";
 
-import { SignUp ,Login ,amdinLogin ,sendEmailOtp , getHistory } from "../controllers/index.js";
-import { adminVerify, counsellorVerify } from "../middlewares/auth.middlewares.js";
-
+import { SignUp ,Login ,amdinLogin ,sendEmailOtp , getHistory ,updateUserProfile } from "../controllers/index.js";
+import { adminVerify, counsellorVerify , auth } from "../middlewares/auth.middlewares.js";
 export const userRouter = Router();
 
 userRouter.post("/signup" , SignUp);
@@ -11,3 +10,4 @@ userRouter.post("/adminlogin",amdinLogin)
 userRouter.post("/otp-for-password/:email" , sendEmailOtp);
 userRouter.get("/getHistory",counsellorVerify,getHistory);
 userRouter.get("/getHistoryByAdmin",adminVerify,getHistory);
+userRouter.put("/update-profile", auth, updateUserProfile);
