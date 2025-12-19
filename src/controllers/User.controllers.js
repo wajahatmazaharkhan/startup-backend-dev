@@ -3,6 +3,7 @@ import { Counsellor } from "../models/Counsellor.models.js";
 import bcrypt from "bcryptjs";
 //otp service imports
 import { sendOtpEmail } from "../services/OtpEmailVerification.js";
+import { SendOtpForPassword } from "../services/OtpPasswordReset.services.js";
 // validator imports
 import {
   SignupValidation,
@@ -282,7 +283,7 @@ export const VerifyOtp = async (req, res) => {
     // 5. Success -
     user.otp = undefined;
     user.otpExpiry = undefined;
-    user.is_verified = true; // Assuming you have an 'is_verified' field in model
+    user.isVerified = true; // Assuming you have an 'is_verified' field in model
 
     await user.save();
 
@@ -342,31 +343,132 @@ export const getHistory = async (req, res) => {
   }
 };
 
-export const resetPassword = async (req, res) => {
+export const passwordOtp = async (req, res) => {
+    const { Email } = req.body;
+
+    try {
+        const user = await User.findOne({ email : Email });
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        // Generate OTP
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
+        const hashedOtp = await bcrypt.hash(otp, 10);
+        const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+
+        // Save OTP and expiry
+        user.otp = hashedOtp;
+        user.otpExpiry = otpExpiry;
+        await user.save();
+
+        // Send OTP Email
+        SendOtpForPassword(user.fullname , user.email , otp);
+
+        return res.status(200).json({
+            success: true,
+            message: "OTP sent to your Email",
+        });
+    } catch (error) {
+        console.error("Error sending OTP:", error);
+        return res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+export const VerifyPasswordResetOtp = async (req, res) => {
   try {
-    const email = req.params.email;
-    const { password, confirmPassword } = req.body;
-    const userFound = await User.findOne({ email });
-    if (!userFound) {
-      return res.status(404).json({ success: false, msg: "User not found" });
-    }
-    if (password === confirmPassword) {
-      userFound.Password = password;
-      await userFound.save();
-      return res.status(200).json({
+    const { email, otp } = req.body;
+
+    // 1. Basic Validation
+    if (!email || !otp) {
+      return res.status(400).json({
         success: false,
-        msg: "Password Reset Successful!",
-      });
-    } else {
-      return res.status(409).json({
-        success: false,
-        msg: "Passsword & confirm password does not match",
+        msg: "Email and OTP are required",
       });
     }
+
+    // 2. Find User
+    const user = await User.findOne({ email : email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        msg: "User not found",
+      });
+    }
+
+    // 3. Check if OTP is expired
+    if (user.otpExpiry && user.otpExpiry < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        msg: "OTP has expired. Please request a new one.",
+      });
+    }
+
+    // 4. Verify OTP
+
+    const isMatch = await bcrypt.compare(otp, user.otp || "");
+
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        msg: "Invalid OTP. Please check your code.",
+      });
+    }
+
+    // 5. Success -
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    user.passwordOtpVerify = true;
+     // Assuming you have an 'is_verified' field in model
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      msg: "Email verified successfully!",
+    });
   } catch (error) {
-    console.log("🚀 ~ resetPassword ~ error:", error);
-    return res
-      .status(500)
-      .json({ success: false, msg: "Internal Server Error", error });
+    console.error("Verify OTP Controller Error:", error);
+    return res.status(500).json({
+      success: false,
+      msg: "Internal Server Error",
+    });
   }
 };
+
+// Add this to your auth-controller.js file
+export const resetPassword = async (req, res) => {
+  const { Email, newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({ email: Email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (
+      !user.passwordOtpVerify ||
+      user.otpExpiry < Date.now()
+    ) {
+      return res.status(403).json({
+        message: "OTP verification required or expired",
+      });
+    }
+
+    user.Password = await bcrypt.hash(newPassword, 10);
+    user.passwordOtpVerify = false;
+    user.otpExpiry = undefined;
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Password updated successfully",
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Password reset failed" });
+  }
+};
+
