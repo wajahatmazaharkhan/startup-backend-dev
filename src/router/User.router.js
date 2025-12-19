@@ -6,7 +6,7 @@ import {
   amdinLogin,
   sendEmailOtp,
   getHistory,
-  forgotPasswordSendOtp,
+  resetPassword,
 } from "../controllers/index.js";
 import {
   adminVerify,
@@ -21,4 +21,4 @@ userRouter.post("/adminlogin", amdinLogin);
 userRouter.post("/otp-for-password/:email", sendEmailOtp);
 userRouter.get("/getHistory", counsellorVerify, getHistory);
 userRouter.get("/getHistoryByAdmin", adminVerify, getHistory);
-userRouter.post("/forgot-password/:email", forgotPasswordSendOtp);
+userRouter.post("/reset-password/:email", resetPassword);

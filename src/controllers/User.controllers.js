@@ -342,41 +342,31 @@ export const getHistory = async (req, res) => {
   }
 };
 
-export const forgotPasswordSendOtp = async (req, res) => {
+export const resetPassword = async (req, res) => {
   try {
-    const { email } = req.params;
-    if (!email) {
-      return res.status(400).json({
+    const email = req.params.email;
+    const { password, confirmPassword } = req.body;
+    const userFound = await User.findOne({ email });
+    if (!userFound) {
+      return res.status(404).json({ success: false, msg: "User not found" });
+    }
+    if (password === confirmPassword) {
+      userFound.Password = password;
+      await userFound.save();
+      return res.status(200).json({
         success: false,
-        msg: "Email is required.",
+        msg: "Password Reset Successful!",
+      });
+    } else {
+      return res.status(409).json({
+        success: false,
+        msg: "Passsword & confirm password does not match",
       });
     }
-
-    const userFound = await User.findOne({ email });
-
-    if (!User) {
-      return res.status(401).json({ success: false, msg: "User not found" });
-    }
-
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
-
-    const hashedOtp = await bcrypt.hash(otp, 10);
-
-    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
-
-    userFound.otp = hashedOtp;
-    userFound.otpExpiry = otpExpiry;
-    await userFound.save();
-
-    await sendOtpEmail(userFound.fullname, userFound.email, otp);
-    return res.status(200).json({
-      success: true,
-      msg: "OTP sent successfully to your email",
-    });
   } catch (error) {
-    console.log("🚀 ~ forgotPasswordSendOtp ~ error:", error);
+    console.log("🚀 ~ resetPassword ~ error:", error);
     return res
       .status(500)
-      .json({ success: false, message: "OTP dispatch failure", error });
+      .json({ success: false, msg: "Internal Server Error", error });
   }
 };
