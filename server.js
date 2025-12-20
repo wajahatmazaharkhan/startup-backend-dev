@@ -20,6 +20,7 @@ import { userRouter } from "./src/router/User.router.js";
 import { RazorpayRouter } from "./src/router/Razorypay.router.js";
 import { AvailabilityRouter } from "./src/router/Availability.router.js";
 import { counsellorRouter } from "./src/router/Counsellor.router.js";
+import { AppointmentRouter } from "./src/router/Appointments.router.js";
 import { Novu } from "@novu/api";
 import { trackAnalytics } from "./src/middlewares/trackAnalytics.middlewares.js";
 import { analyticsRouter } from "./src/router/Analytics.router.js";
@@ -90,6 +91,7 @@ app.use("/api/form", FormRouter);
 app.use("/api/user", userRouter);
 app.use("/api/availability", AvailabilityRouter);
 app.use("/api/counsellor", counsellorRouter);
+app.use("/api/appointments", AppointmentRouter);
 app.use("/analytics", analyticsRouter);
 // Example: http://localhost:4000/api/form/submit
 
