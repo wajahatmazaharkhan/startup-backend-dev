@@ -21,6 +21,8 @@ import { RazorpayRouter } from "./src/router/Razorypay.router.js";
 import { AvailabilityRouter } from "./src/router/Availability.router.js";
 import { counsellorRouter } from "./src/router/Counsellor.router.js";
 import { Novu } from "@novu/api";
+import { trackAnalytics } from "./src/middlewares/trackAnalytics.middlewares.js";
+import { analyticsRouter } from "./src/router/Analytics.router.js";
 
 // ===============================================================
 // 🚀 Create Express App Instance
@@ -60,6 +62,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.static("/tmp", { index: false }));
+app.set("trust proxy", true);
+app.use(trackAnalytics);
 
 // ===============================================================
 // 🏠 Default Route
@@ -86,7 +90,7 @@ app.use("/api/form", FormRouter);
 app.use("/api/user", userRouter);
 app.use("/api/availability", AvailabilityRouter);
 app.use("/api/counsellor", counsellorRouter);
-
+app.use("/analytics",analyticsRouter)
 // Example: http://localhost:4000/api/form/submit
 
 // Novu Notification Service Instance
