@@ -39,7 +39,7 @@ const port = process.env.PORT || 4000;
 // 🌐 CORS Options (Security + Cross-Origin)
 // ===============================================================
 const corsOptions = {
-  origin: "*", // change to specific domain in production
+  origin: ["http://localhost:8080", "http://localhost:3001"], // change to specific domain in production
   credentials: true,
   methods: "GET, POST, DELETE, PATCH, HEAD, PUT, OPTIONS",
   allowedHeaders: [
@@ -90,7 +90,7 @@ app.use("/api/form", FormRouter);
 app.use("/api/user", userRouter);
 app.use("/api/availability", AvailabilityRouter);
 app.use("/api/counsellor", counsellorRouter);
-app.use("/analytics",analyticsRouter)
+app.use("/analytics", analyticsRouter);
 // Example: http://localhost:4000/api/form/submit
 
 // Novu Notification Service Instance
