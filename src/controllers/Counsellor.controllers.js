@@ -171,3 +171,70 @@ export const getCounsellorByEmail = asyncHandler(async (req, res) => {
 
   return res.status(200).json({ msg: "counsellor is found", counsellor });
 });
+
+export const updateCounsellor = asyncHandler(async (req, res) => {
+  const userId = req.user._id; // from JWT middleware
+
+  // find counsellor profile
+  const counsellor = await Counsellor.findOne({ user_id: userId });
+  if (!counsellor) {
+    return res.status(404).json({ msg: "Counsellor profile not found" });
+  }
+
+  // find user profile
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ msg: "User not found" });
+  }
+
+  const data = req.body;
+  const f = req.files;
+
+  console.log("BODY:", req.body);
+  console.log("government_id:", req.body.government_id);
+
+
+  const uploadIfExists = async (file) => {
+    return file ? await ImagekitFileUploader(file.path, file.originalname) : null;
+  };
+
+  const governmentID = await uploadIfExists(f?.government_id?.[0]);
+  const profilePicture = await uploadIfExists(f?.profile_picture?.[0]);
+  const qualificationCert = await uploadIfExists(f?.qualification_certificates?.[0]);
+  const licenceDoc = await uploadIfExists(f?.licence?.[0]);
+  const experienceLetter = await uploadIfExists(f?.experince_letter?.[0]);
+  const additionalDocs = await uploadIfExists(f?.additional_documents?.[0]);
+
+  // Update fields in Counsellor schema
+  Object.keys(data).forEach((key) => {
+    counsellor[key] = data[key];
+  });
+
+  // Update files in Counsellor schema
+  if (governmentID) counsellor.documents.government_id = governmentID.url;
+  if (profilePicture) counsellor.documents.profile_picture = profilePicture.url;
+  if (qualificationCert) counsellor.documents.qualification_certificates = qualificationCert.url;
+  if (licenceDoc) counsellor.documents.licence = licenceDoc.url;
+  if (experienceLetter) counsellor.documents.experince_letter = experienceLetter.url;
+  if (additionalDocs) counsellor.documents.additional_documents = additionalDocs.url;
+
+  // Update shared fields in User schema
+  const sharedFields = ["fullname", "email", "phone_number", "dob", "gender"];
+  sharedFields.forEach((field) => {
+    if (data[field] !== undefined) {
+      user[field] = data[field];
+    }
+  });
+
+  await counsellor.save();
+  await user.save();
+
+  return res.status(200).json({
+    msg: "Counsellor profile updated successfully",
+    counsellor,
+    user,
+  });
+});
+
+
+
