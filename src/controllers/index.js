@@ -18,7 +18,7 @@
 
 import { FormController } from "./Form.controllers.js";
 import { SignUp ,Login , amdinLogin, sendEmailOtp , VerifyOtp ,getHistory ,passwordOtp ,VerifyPasswordResetOtp ,resetPassword} from "./User.controllers.js";
-import { CounsellorSignup , CounsellorLogin , getallCounsellor, getCounsellorByEmail } from "./Counsellor.controllers.js";
+import { CounsellorSignup , CounsellorLogin , getallCounsellor, getCounsellorByEmail ,updateCounsellor } from "./Counsellor.controllers.js";
 
 // Export all controllers together
 export {
@@ -35,5 +35,6 @@ export {
     getCounsellorByEmail,
     passwordOtp,
     resetPassword,
-    VerifyPasswordResetOtp
+    VerifyPasswordResetOtp,
+    updateCounsellor
 };
