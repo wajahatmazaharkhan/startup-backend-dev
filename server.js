@@ -25,6 +25,7 @@ import { Novu } from "@novu/api";
 import { trackAnalytics } from "./src/middlewares/trackAnalytics.middlewares.js";
 import { analyticsRouter } from "./src/router/Analytics.router.js";
 import { errorHandler } from "./src/middlewares/error-handler.js";
+import { serviceRouter } from "./src/router/services.router.js";
 
 // ===============================================================
 // 🚀 Create Express App Instance
@@ -111,6 +112,7 @@ app.use("/api/availability", AvailabilityRouter);
 app.use("/api/counsellor", counsellorRouter);
 app.use("/api/appointments", AppointmentRouter);
 app.use("/analytics", analyticsRouter);
+app.use("/api/service",serviceRouter);
 // Example: http://localhost:4000/api/form/submit
 
 // Novu Notification Service Instance
