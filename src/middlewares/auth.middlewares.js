@@ -3,7 +3,7 @@ import { User } from "../models/User.models.js";
 import { asyncHandler } from "../utils/async-handler.js";
 
 const auth = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
+  const token = req.cookies.authToken;
   if (!token) return res.status(401).json({ msg: "No token" });
 
   try {

@@ -2,7 +2,7 @@ import Availability from "../models/Availability.models.js";
 import { asyncHandler } from "../utils/async-handler.js";
 
 export const addOrUpdateAvailability = asyncHandler(async (req, res) => {
-  const counsellorId = req.user.id;
+  const counsellorId = req.user.userId;
   const { day, startTime, endTime } = req.body;
 
   const existing = await Availability.findOne({ counsellorId, day });
