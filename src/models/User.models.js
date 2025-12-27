@@ -51,15 +51,17 @@ const userSchema = new mongoose.Schema({
   otpExpiry: {
     type: Date,
   },
-  passwordOtpVerify :{
-    type : Boolean,
-    default : false
+  passwordOtpVerify: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 
 /******************** Password HASHING ********************/
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("Password"));
+  if (!this.isModified("Password")) {
+    return;
+  }
 
   const salt = await bcrypt.genSalt(10);
   this.Password = await bcrypt.hash(this.Password, salt);

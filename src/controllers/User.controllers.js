@@ -1,10 +1,8 @@
 import { User } from "../models/User.models.js";
 import { Counsellor } from "../models/Counsellor.models.js";
 import bcrypt from "bcryptjs";
-//otp service imports
 import { sendOtpEmail } from "../services/OtpEmailVerification.js";
 import { SendOtpForPassword } from "../services/OtpPasswordReset.services.js";
-// validator imports
 import {
   SignupValidation,
   LoginValidation,
@@ -14,7 +12,9 @@ import { asyncHandler } from "../utils/async-handler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
-// signup user controller function //
+// ==========================================
+// 1. SIGN UP
+// ==========================================
 export const SignUp = asyncHandler(async (req, res) => {
   const data = SignupValidation.parse(req.body);
 
@@ -44,30 +44,27 @@ export const SignUp = asyncHandler(async (req, res) => {
       {
         fullname: newUser.fullname,
         email: newUser.email,
-        phone_number: newUser.phone_number,
-        dob: newUser.dob,
-        gender: newUser.gender,
-        timezone: newUser.timezone,
-        preferred_language: newUser.preferred_language,
       },
       "User created successfully"
     )
   );
 });
 
-// login user controller function //
+// ==========================================
+// 2. LOGIN
+// ==========================================
 export const Login = asyncHandler(async (req, res) => {
   const data = LoginValidation.parse(req.body);
 
-  // get existed user
-
   const userExisted = await User.findOne({ email: data.email });
+
   if (!userExisted) {
-    return res.status(401).json({ message: "Invalid email or password." });
+    return res.status(401).json(new ApiError(401, "Invalid Email or Password"));
   }
-  const user = await userExisted.comparePassword(data.Password);
+
+  const isPasswordValid = await userExisted.comparePassword(data.Password);
   if (!isPasswordValid) {
-    return res.status(401).json({ message: "Invalid email or password." });
+    return res.status(401).json(new ApiError(401, "Invalid Email or Password"));
   }
 
   await User.updateOne(
@@ -77,38 +74,34 @@ export const Login = asyncHandler(async (req, res) => {
 
   const token = userExisted.generateAuthToken();
 
-  // cookie option
   const option = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    // secure: false, // Set to true if using HTTPS
   };
 
-  if (user) {
-    res
-      .status(200)
-      .cookie("authToken", token, option)
-      .json(
-        new ApiResponse(
-          200,
-          {
-            token,
-            user: {
-              id: userExisted._id,
-              fullname: userExisted.fullname,
-              email: userExisted.email,
-              role: userExisted.role,
-            },
+  return res
+    .status(200)
+    .cookie("authToken", token, option)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          token,
+          user: {
+            id: userExisted._id,
+            fullname: userExisted.fullname,
+            email: userExisted.email,
+            role: userExisted.role,
           },
-          "Login Successful"
-        )
-      );
-  } else {
-    res.status(401).json(new ApiError(401, "Invalid Email or Password"));
-  }
+        },
+        "Login Successful"
+      )
+    );
 });
 
-// admin login controller function //
+// ==========================================
+// 3. ADMIN LOGIN
+// ==========================================
 export const adminLogin = asyncHandler(async (req, res) => {
   const data = AdminLoginValidation.parse(req.body);
 
@@ -118,230 +111,177 @@ export const adminLogin = asyncHandler(async (req, res) => {
     return res.status(404).json(new ApiError(404, "User Not Found"));
   }
 
-  if (userExisted.role != "admin") {
-    return res.status(402).json(new ApiError(402, "Only Admins can Login"));
+  if (userExisted.role !== "admin") {
+    return res.status(403).json(new ApiError(403, "Only Admins can Login"));
   }
 
-  const user = await userExisted.comparePassword(data.Password);
+  const isPasswordValid = await userExisted.comparePassword(data.Password);
 
-  if (!user) {
+  if (!isPasswordValid) {
     return res.status(400).json(new ApiError(400, "Invalid Email or Password"));
   }
+
   const token = userExisted.generateAuthToken();
 
-  // cookie option
   const option = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    // secure: false, // Set to true if using HTTPS
   };
 
-  if (user) {
-    res
-      .status(200)
-      .cookie("authToken", token, option)
-      .json(
-        new ApiResponse(
-          200,
-          {
-            token,
-            user: {
-              id: userExisted._id,
-              fullname: userExisted.fullname,
-              email: userExisted.email,
-              role: userExisted.role,
-            },
+  return res
+    .status(200)
+    .cookie("authToken", token, option)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          token,
+          user: {
+            id: userExisted._id,
+            fullname: userExisted.fullname,
+            email: userExisted.email,
+            role: userExisted.role,
           },
-          "Login Successful"
-        )
-      );
-  } else {
-    res.status(401).json(new ApiError(401, "Invalid Email or Password"));
-  }
+        },
+        "Admin Login Successful"
+      )
+    );
 });
 
-// function for send verify otp using nodemailer
+// ==========================================
+// 4. SEND EMAIL OTP
+// ==========================================
 export const sendEmailOtp = asyncHandler(async (req, res) => {
-  const { email } = req.params; // use lowercase standard
+  const { email } = req.params;
 
   if (!email) {
     return res.status(400).json(new ApiError(400, "Email Address is Required"));
   }
 
-  // ✅ Find user by email
   const userFound = await User.findOne({ email });
 
   if (!userFound) {
     return res.status(404).json(new ApiError(404, "User not Found"));
   }
 
-  // ✅ Generate 4-digit OTP
   const otp = Math.floor(1000 + Math.random() * 9000).toString();
-
-  // ✅ Hash OTP
   const hashedOtp = await bcrypt.hash(otp, 10);
-
-  // ✅ Expiry time (5 minutes)
   const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
 
-  // ✅ Save OTP in DB
   userFound.otp = hashedOtp;
   userFound.otpExpiry = otpExpiry;
   await userFound.save();
 
-  // ✅ Send OTP email
-  await sendOtpEmail(userFound.fullname, userFound.email, otp);
+  try {
+    await sendOtpEmail(userFound.fullname, userFound.email, otp);
+  } catch (error) {
+    return res.status(500).json(new ApiError(500, "Failed to send email"));
+  }
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, null, "OTP sent successfully!"));
+  return res.status(200).json(new ApiResponse(200, null, "OTP sent successfully!"));
 });
 
-// NEWLY ADDED: Verify OTP Function
-
+// ==========================================
+// 5. VERIFY OTP
+// ==========================================
 export const VerifyOtp = asyncHandler(async (req, res) => {
   const { email, otp } = req.body;
 
-  // 1. Basic Validation
   if (!email || !otp) {
-    return res.status(400).json(new ApiError(400, "OTP and Email is required"));
+    return res.status(400).json(new ApiError(400, "OTP and Email are required"));
   }
 
-  // 2. Find User
   const user = await User.findOne({ email });
 
   if (!user) {
     return res.status(404).json(new ApiError(404, "User not found"));
   }
 
-  // 3. Check if OTP is expired
   if (user.otpExpiry && user.otpExpiry < Date.now()) {
     return res.status(400).json(new ApiError(400, "OTP Expired. Request new!"));
   }
 
-  // 4. Verify OTP
-
   const isMatch = await bcrypt.compare(otp, user.otp || "");
 
   if (!isMatch) {
-    return res
-      .status(400)
-      .json(new ApiError(400, "Invalid OTP. Please check once!"));
+    return res.status(400).json(new ApiError(400, "Invalid OTP"));
   }
 
-  // 5. Success -
   user.otp = undefined;
   user.otpExpiry = undefined;
-  user.isVerified = true; // Assuming you have an 'is_verified' field in model
+  user.isVerified = true;
 
   await user.save();
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, null, "Email verified Successfully!"));
+  return res.status(200).json(new ApiResponse(200, null, "Email verified Successfully!"));
 });
 
-// get user history
-export const getHistory = asyncHandler(async (req, res) => {
-  const { counsellorId } = req.params;
-
-  if (!counsellorId) {
-    return res.status(400).json(new ApiError(400, "Counsellor ID is required"));
-  }
-
-  // ✅ Find counsellor and populate history.customerId to get user details
-  const counsellor = await Counsellor.findById(counsellorId).populate(
-    "history.customerId",
-    "fullname email phone_number"
-  );
-
-  if (!counsellor) {
-    return res.status(404).json(new ApiError(404, "Counsellor not Found"));
-  }
-
-  // ✅ Optionally sort by latest visit first
-  const sortedHistory = counsellor.history.sort(
-    (a, b) => b.visitDate - a.visitDate
-  );
-
-  return res.status(200).json(
-    new ApiResponse(200, {
-      history: sortedHistory,
-    })
-  );
-});
-
+// ==========================================
+// 6. PASSWORD RESET OTP REQUEST
+// ==========================================
 export const passwordOtp = asyncHandler(async (req, res) => {
-  const { Email } = req.body;
-  const user = await User.findOne({ email: Email });
+  const { email } = req.params; // Changed to params to match your route
+
+  const user = await User.findOne({ email: email });
   if (!user) {
     return res.status(404).json(new ApiError(404, "User not found"));
   }
 
-  // Generate OTP
   const otp = Math.floor(1000 + Math.random() * 9000).toString();
   const hashedOtp = await bcrypt.hash(otp, 10);
   const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
 
-  // Save OTP and expiry
   user.otp = hashedOtp;
   user.otpExpiry = otpExpiry;
   await user.save();
 
-  // Send OTP Email
-  SendOtpForPassword(user.fullname, user.email, otp);
+  try {
+    await SendOtpForPassword(user.fullname, user.email, otp);
+  } catch (error) {
+    return res.status(500).json(new ApiError(500, "Failed to send email"));
+  }
 
-  return res.status(200).json(new ApiResponse(200, "OTP sent successfully!"));
+  return res.status(200).json(new ApiResponse(200, null, "OTP sent successfully!"));
 });
 
+// ==========================================
+// 7. VERIFY PASSWORD OTP
+// ==========================================
 export const VerifyPasswordResetOtp = asyncHandler(async (req, res) => {
   const { email, otp } = req.body;
 
-  // 1. Basic Validation
   if (!email || !otp) {
-    return res
-      .status(400)
-      .json(new ApiError(400, "Email and OTP are required"));
+    return res.status(400).json(new ApiError(400, "Email and OTP are required"));
   }
 
-  // 2. Find User
   const user = await User.findOne({ email: email });
 
   if (!user) {
     return res.status(404).json(new ApiError(404, "User not found"));
   }
 
-  // 3. Check if OTP is expired
   if (user.otpExpiry && user.otpExpiry < Date.now()) {
-    return res
-      .status(400)
-      .json(new ApiError(400, "OTP has expired. Please request new one"));
+    return res.status(400).json(new ApiError(400, "OTP has expired"));
   }
-
-  // 4. Verify OTP
 
   const isMatch = await bcrypt.compare(otp, user.otp || "");
 
   if (!isMatch) {
-    return res
-      .status(400)
-      .json(new ApiError(400, "Invalid OTP. Please check it once"));
+    return res.status(400).json(new ApiError(400, "Invalid OTP"));
   }
 
-  // 5. Success -
   user.otp = undefined;
   user.otpExpiry = undefined;
   user.passwordOtpVerify = true;
-  // Assuming you have an 'is_verified' field in model
 
   await user.save();
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "Email Verified Successfully"));
+  return res.status(200).json(new ApiResponse(200, null, "Email Verified Successfully"));
 });
 
-// Add this to your auth-controller.js file
+// ==========================================
+// 8. RESET PASSWORD
+// ==========================================
 export const resetPassword = asyncHandler(async (req, res) => {
   const { Email, newPassword } = req.body;
 
@@ -351,21 +291,29 @@ export const resetPassword = asyncHandler(async (req, res) => {
     return res.status(404).json(new ApiError(404, "User not found"));
   }
 
-  if (!user.passwordOtpVerify || user.otpExpiry < Date.now()) {
-    return res
-      .status(403)
-      .json(
-        new ApiError(403, "Account not verified via OTP. || OR || OTP Expired")
-      );
+  if (user.passwordOtpVerify !== true) {
+    return res.status(403).json(new ApiError(403, "OTP verification required"));
   }
 
-  user.Password = await bcrypt.hash(newPassword, 10);
+  user.Password = newPassword;
+
   user.passwordOtpVerify = false;
   user.otpExpiry = undefined;
 
   await user.save();
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "Password has been Reset successfully!"));
+  return res.status(200).json(new ApiResponse(200, null, "Password has been Reset successfully!"));
+});
+
+// History Controller
+export const getHistory = asyncHandler(async (req, res) => {
+  const { counsellorId } = req.params;
+  if (!counsellorId) return res.status(400).json(new ApiError(400, "Counsellor ID required"));
+
+  const counsellor = await Counsellor.findById(counsellorId).populate("history.customerId", "fullname email phone_number");
+  if (!counsellor) return res.status(404).json(new ApiError(404, "Counsellor not Found"));
+
+  const sortedHistory = counsellor.history.sort((a, b) => b.visitDate - a.visitDate);
+
+  return res.status(200).json(new ApiResponse(200, { history: sortedHistory }));
 });
