@@ -3,7 +3,7 @@ import { Router } from "express";
 import {
   SignUp,
   Login,
-  amdinLogin,
+  adminLogin,
   sendEmailOtp,
   getHistory,
   VerifyPasswordResetOtp,
@@ -20,13 +20,13 @@ export const userRouter = Router();
 
 userRouter.post("/signup", SignUp);
 userRouter.post("/login", Login);
-userRouter.post("/adminlogin", amdinLogin);
+userRouter.post("/adminlogin", adminLogin);
 userRouter.post("/otp-for-password/:email", sendEmailOtp);
-userRouter.post("/verifyotp",VerifyOtp)
+userRouter.post("/verifyotp", VerifyOtp)
 userRouter.get("/getHistory", counsellorVerify, getHistory);
 userRouter.get("/getHistoryByAdmin", adminVerify, getHistory);
-userRouter.post("/passwordresetotp",passwordOtp);
-userRouter.post("/verifypasswordotp",VerifyPasswordResetOtp);
-userRouter.post("/resetpassword",resetPassword);
+userRouter.post("/passwordresetotp", passwordOtp);
+userRouter.post("/verifypasswordotp", VerifyPasswordResetOtp);
+userRouter.post("/resetpassword", resetPassword);
 
 

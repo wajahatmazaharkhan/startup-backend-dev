@@ -108,8 +108,8 @@ export const Login = asyncHandler(async (req, res) => {
   }
 });
 
-// admin mogin controller function //
-export const amdinLogin = asyncHandler(async (req, res) => {
+// admin login controller function //
+export const adminLogin = asyncHandler(async (req, res) => {
   const data = AdminLoginValidation.parse(req.body);
 
   const userExisted = await User.findOne({ email: data.email });
