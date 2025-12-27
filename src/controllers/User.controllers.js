@@ -67,7 +67,13 @@ export const Login = asyncHandler(async (req, res) => {
   // get existed user
 
   const userExisted = await User.findOne({ email: data.email });
+  if (!userExisted) {
+    return res.status(401).json({ message: "Invalid email or password." });
+  }
   const user = await userExisted.comparePassword(data.Password);
+  if (!isPasswordValid) {
+    return res.status(401).json({ message: "Invalid email or password." });
+  }
 
   await User.updateOne(
     { _id: userExisted._id },
