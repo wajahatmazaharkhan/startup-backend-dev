@@ -62,7 +62,13 @@ export const Login = asyncHandler(async (req, res) => {
   // get existed user
 
   const userExisted = await User.findOne({ email: data.email });
+  if (!userExisted) {
+    return res.status(401).json({ message: "Invalid email or password." });
+  }
   const user = await userExisted.comparePassword(data.Password);
+  if (!isPasswordValid) {
+    return res.status(401).json({ message: "Invalid email or password." });
+  }
 
   await User.updateOne(
     { _id: userExisted._id },
@@ -102,8 +108,8 @@ export const Login = asyncHandler(async (req, res) => {
   }
 });
 
-// admin Login controller function //
-export const amdinLogin = asyncHandler(async (req, res) => {
+// admin login controller function //
+export const adminLogin = asyncHandler(async (req, res) => {
   const data = AdminLoginValidation.parse(req.body);
 
   const userExisted = await User.findOne({ email: data.email });

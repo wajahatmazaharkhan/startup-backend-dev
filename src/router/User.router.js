@@ -10,7 +10,7 @@ export const userRouter = Router();
 
 userRouter.post("/signup", UserController.SignUp);
 userRouter.post("/login", UserController.Login);
-userRouter.post("/adminlogin", UserController.amdinLogin);
+userRouter.post("/adminlogin", UserController.adminLogin);
 userRouter.post("/otp-for-password/:email", UserController.sendEmailOtp);
 userRouter.post("/verifyotp", UserController.VerifyOtp);
 userRouter.get("/getHistory", counsellorVerify, UserController.getHistory);
