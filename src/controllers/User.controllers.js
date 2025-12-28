@@ -23,6 +23,8 @@ export const SignUp = asyncHandler(async (req, res) => {
     return res.status(409).json(new ApiError(409, "User Already Exists"));
   }
 
+  console.log("Password", data.Password);
+
   const newUser = await User.create({
     fullname: data.fullname,
     email: data.email,
@@ -62,6 +64,11 @@ export const Login = asyncHandler(async (req, res) => {
   // get existed user
 
   const userExisted = await User.findOne({ email: data.email });
+
+  if (!userExisted) {
+    return res.status(404).json(new ApiError(404, "User Account not found"));
+  }
+
   const user = await userExisted.comparePassword(data.Password);
 
   await User.updateOne(
