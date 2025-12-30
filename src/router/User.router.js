@@ -64,7 +64,7 @@ userRouter.get(
   }
 );
 
-userRouter.get("/api/current-user", auth, (req, res, next) => {
+userRouter.get("/current-user", auth, (req, res, next) => {
   User.findById(req.user)
     .then((user) => {
       // res.cookie("XSRF-TOKEN", req.csrfToken());
@@ -76,7 +76,7 @@ userRouter.get("/api/current-user", auth, (req, res, next) => {
     });
 });
 
-userRouter.post("/api/logout", (req, res) => {
+userRouter.post("/logout", (req, res) => {
   req.session.destroy((err) => {
     if (err) {
       return res
