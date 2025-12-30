@@ -54,8 +54,16 @@ userRouter.get(
       const token = jwt.sign({ userId: req.user.id }, privateKey, {
         algorithm: "RS256",
       });
-      res.cookie("access_token", token, { httpOnly: true });
-      res.cookie("refresh_token", token, { httpOnly: true });
+      res.cookie("access_token", token, {
+        httpOnly: true,
+        sameSite: "None",
+        secure: process.env.NODE_ENV === "production",
+      });
+      res.cookie("refresh_token", token, {
+        httpOnly: true,
+        sameSite: "None",
+        secure: process.env.NODE_ENV === "production",
+      });
       res.redirect(`${process.env.API_URL}`);
     } catch (error) {
       console.error(error);
