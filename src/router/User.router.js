@@ -88,20 +88,28 @@ userRouter.get("/current-user", googleJwtMiddleware, (req, res, next) => {
 });
 
 userRouter.post("/logout", (req, res) => {
+  const isProd = process.env.NODE_ENV === "production";
+
   req.session.destroy((err) => {
     if (err) {
       return res
         .status(500)
         .json(new ApiError(500, "could not log out, please try again!"));
-    } else {
-      res.clearCookie("access_token");
-      res.clearCookie("refresh_token");
-      res.clearCookie("authToken");
-      // res.redirect(`${process.env.API_URL}`);
-      return res
-        .status(200)
-        .json(new ApiResponse(200, null, "Logged out successfully"));
     }
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "None" : "Lax",
+    };
+
+    res.clearCookie("access_token", cookieOptions);
+    res.clearCookie("refresh_token", cookieOptions);
+    res.clearCookie("authToken", cookieOptions);
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, null, "Logged out successfully"));
   });
 });
 
