@@ -71,16 +71,17 @@ const auth = (req, res, next) => {
       );
     } else {
       // user may not have used google login method. Normal email password;
-      if (!authToken || (!accessToken && !refreshToken)) {
+      if (!authToken && !accessToken && !refreshToken) {
         return res
           .status(401)
           .json(new ApiError(401, "Unauthorized: No token provided"));
       }
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+        const decoded = jwt.verify(authToken, process.env.JWT_SECRET_KEY);
         req.user = decoded;
         next();
       } catch (error) {
+        console.error(error);
         return res
           .status(401)
           .json(new ApiError(401, "Invalid Token Provided"));

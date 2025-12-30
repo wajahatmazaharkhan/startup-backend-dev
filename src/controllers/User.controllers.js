@@ -371,3 +371,10 @@ export const resetPassword = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, "Password has been Reset successfully!"));
 });
+
+export const getUserInfo = asyncHandler(async (req, res) => {
+  const user = req.user;
+  if (!user) return res.status(404).json(new ApiError(404, "No User Found"));
+  const userFound = await User.findById(user.userId);
+  return res.status(200).json(new ApiResponse(200, userFound, "ok"));
+});

@@ -85,11 +85,13 @@ userRouter.get("/api/logout", (req, res) => {
     } else {
       res.clearCookie("access_token");
       res.clearCookie("refresh_token");
+      res.clearCookie("authToken");
       return res.status(200).json({ message: "Logged out" });
     }
   });
 });
 
+userRouter.get("/info", auth, UserController.getUserInfo);
 userRouter.post("/adminlogin", UserController.amdinLogin);
 userRouter.post("/otp-for-password/:email", UserController.sendEmailOtp);
 userRouter.post("/verify-otp", UserController.VerifyOtp);
