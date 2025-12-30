@@ -11,83 +11,42 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const auth = (req, res, next) => {
-  const accessToken = req.cookies.access_token;
-  const refreshToken = req.cookies.refresh_token;
-  const authToken = req.cookies.authToken;
+  const { access_token, refresh_token, authToken } = req.cookies;
+
   try {
-    const publicKey = fs.readFileSync(
-      path.join(__dirname, "../public.key"),
-      "utf-8"
-    );
-    if (accessToken && refreshToken) {
-      jwt.verify(
-        accessToken,
-        publicKey,
-        { algorithms: ["RS256"] },
-        (err, decoded) => {
-          if (err) {
-            if (err.name === "TokenExpiredError") {
-              // access token is expired. Try to refresh it.
-              jwt.verify(
-                refreshToken,
-                publicKey,
-                { algorithms: ["RS256"] },
-                (err, decoded) => {
-                  if (err) {
-                    // refresh token is also invalid or expired. the user needs to login again.
-                    res
-                      .status(401)
-                      .json(new ApiError("Unauthorized: Invalid token"));
-                  } else {
-                    // refresh token is valid. Generate a new accessToken and continue
-                    const privateKey = fs.readFileSync(
-                      path.join(__dirname, "../private.key"),
-                      "utf-8"
-                    );
-                    const newAcessToken = jwt.sign(
-                      { userId: decoded.userId },
-                      privateKey,
-                      { algorithm: "RS256" }
-                    );
-                    res.cookie("access_token", newAcessToken, {
-                      httpOnly: true,
-                    });
-                    req.user = decoded.userId;
-                    next();
-                  }
-                }
-              );
-            } else {
-              // access token is invalid for a reason other than expiration.
-              console.error(err);
-              res.status(401).json(new ApiError("Unauthorized: Invalid Token"));
-            }
-          } else {
-            // access token is valid. Continue.
-            req.user = decoded.userId;
-            next();
-          }
-        }
-      );
-    } else {
-      // user may not have used google login method. Normal email password;
-      if (!authToken && !accessToken && !refreshToken) {
-        return res
-          .status(401)
-          .json(new ApiError(401, "Unauthorized: No token provided"));
-      }
+    // 1️⃣ TRY GOOGLE AUTH FIRST (but don't fail hard)
+    if (access_token && refresh_token) {
       try {
-        const decoded = jwt.verify(authToken, process.env.JWT_SECRET_KEY);
-        req.user = decoded;
-        next();
-      } catch (error) {
-        console.error(error);
-        return res
-          .status(401)
-          .json(new ApiError(401, "Invalid Token Provided"));
+        const publicKey = fs.readFileSync(
+          path.join(__dirname, "../public.key"),
+          "utf-8"
+        );
+
+        const decoded = jwt.verify(access_token, publicKey, {
+          algorithms: ["RS256"],
+        });
+
+        req.user = decoded.userId;
+        return next();
+      } catch (err) {
+        // IMPORTANT: swallow Google failure and FALL THROUGH
+        console.warn("Google token invalid, falling back");
       }
     }
-  } catch (error) {}
+
+    //  FALLBACK: normal email/password auth
+    if (!authToken) {
+      return res
+        .status(401)
+        .json(new ApiError(401, "Unauthorized: No valid token"));
+    }
+
+    const decoded = jwt.verify(authToken, process.env.JWT_SECRET_KEY);
+    req.user = decoded.userId;
+    next();
+  } catch (err) {
+    return res.status(401).json(new ApiError(401, "Invalid or expired token"));
+  }
 };
 
 export default auth;
