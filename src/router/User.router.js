@@ -64,7 +64,7 @@ userRouter.get(
   }
 );
 
-userRouter.get("/api/current-user", auth, (req, res, next) => {
+userRouter.get("/current-user", auth, (req, res, next) => {
   User.findById(req.user)
     .then((user) => {
       // res.cookie("XSRF-TOKEN", req.csrfToken());
