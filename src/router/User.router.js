@@ -76,18 +76,22 @@ userRouter.get("/api/current-user", auth, (req, res, next) => {
     });
 });
 
-userRouter.get("/api/logout", (req, res) => {
-  req.session.destroy((err) => {
+userRouter.get("/api/logout", (req, res, next) => {
+  req.logout(function (err) {
     if (err) {
-      return res
-        .status(500)
-        .json(new ApiError(500, "could not log out, please try again!"));
-    } else {
+      return next(err);
+    }
+
+    req.session.destroy(() => {
+      res.clearCookie("connect.sid"); // passport session cookie
       res.clearCookie("access_token");
       res.clearCookie("refresh_token");
       res.clearCookie("authToken");
-      res.redirect(`${process.env.API_URL}`);
-    }
+      res.status(200).json({
+        success: true,
+        message: "Logged out successfully",
+      });
+    });
   });
 });
 
