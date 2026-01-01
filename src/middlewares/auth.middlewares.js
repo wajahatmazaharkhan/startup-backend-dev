@@ -93,8 +93,8 @@ export const googleJwtMiddleware = (req, res, next) => {
     }
   } catch (err) {
     console.error("Error reading key files:", err);
-    // res.status(500).send("Internal Server Error");
-    auth(req, res, next);
+    res.status(500).send("Internal Server Error");
+    // auth(req, res, next);
   }
 };
 

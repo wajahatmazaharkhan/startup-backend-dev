@@ -46,6 +46,7 @@ import passport from "./src/config/passport-config.js";
 import { Message } from "./src/models/message.models.js";
 import { decryptText } from "./src/security/aes-encryption.js";
 import { User } from "./src/models/User.models.js";
+import { AdminRouter } from "./src/router/Admin.router.js";
 
 // ===============================================================
 // 🔧 Environment Variables
@@ -115,9 +116,7 @@ app.use(passport.session());
 // 🏠 Default Route
 // ===============================================================
 app.get("/", (req, res) => {
-  res
-    .status(200)
-    .json(new ApiResponse(200, null, "Web Server is Running..."));
+  res.status(200).json(new ApiResponse(200, null, "Web Server is Running..."));
 });
 
 // ===============================================================
@@ -148,6 +147,7 @@ app.use("/analytics", analyticsRouter);
 app.use("/api/service", serviceRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/message", messageRouter);
+app.use("/api/admin", AdminRouter);
 
 // ===============================================================
 // 🔗 Socket.IO Logic
@@ -177,14 +177,8 @@ io.on("connection", (socket) => {
 
   // Send message event
   socket.on("sendMessage", async (data) => {
-    const {
-      conversationId,
-      senderId,
-      receiverId,
-      text,
-      emoji,
-      attachments,
-    } = data;
+    const { conversationId, senderId, receiverId, text, emoji, attachments } =
+      data;
 
     try {
       const receiverSocketId = onlineUsers.get(receiverId);
@@ -239,7 +233,9 @@ io.on("connection", (socket) => {
     if (disconnectedUser) {
       // Update lastSeen
       try {
-        await User.findByIdAndUpdate(disconnectedUser, { lastSeen: new Date() });
+        await User.findByIdAndUpdate(disconnectedUser, {
+          lastSeen: new Date(),
+        });
       } catch (err) {
         console.error("Error updating lastSeen on disconnect:", err);
       }
