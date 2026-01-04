@@ -30,6 +30,7 @@ import { chatRouter } from "./src/router/chat.router.js";
 import { messageRouter } from "./src/router/message.router.js";
 import { analyticsRouter } from "./src/router/Analytics.router.js";
 import { serviceRouter } from "./src/router/services.router.js";
+import { notificationRouter } from "./src/router/Notifications.router.js";
 
 // ===============================================================
 // 🧠 Other Imports
@@ -153,6 +154,7 @@ app.use("/api/chat", dynamicAuth, chatRouter);
 app.use("/api/message", dynamicAuth, messageRouter);
 app.use("/api/admin", adminVerify, AdminRouter);
 app.use("/api", dynamicAuth, RazorpayRouter);
+app.use("/api/notifications", notificationRouter);
 // ===============================================================
 // 🔗 Socket.IO Logic
 // ===============================================================
