@@ -5,53 +5,78 @@ import cron from "node-cron";
 import { Appointment } from "../models/Appointment.model.js";
 import { Notification } from "../models/Notifications.model.js";
 import { sendRealtimeNotification } from "../realtime/sendRealtimeNotification.js";
+import { User } from "../models/User.models.js";
+import { Counsellor } from "../models/Counsellor.models.js";
 
-// ---------------------------------------------------------------
-// Check every minute for appointments happening soon
-// ---------------------------------------------------------------
 export const startAppointmentReminderCron = () => {
   cron.schedule("* * * * *", async () => {
     try {
       const now = new Date();
-      const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+      const reminderTime = new Date(now.getTime() + 30 * 60 * 1000); // 30 minutes later
 
-      // 1️⃣ Find appointments that start in 1 hour and not yet reminded
+      // 2-minute window to avoid missing reminders
+      const windowStart = new Date(reminderTime.getTime() - 1 * 60 * 1000);
+      const windowEnd = new Date(reminderTime.getTime() + 1 * 60 * 1000);
+
+      // Find appointments and populate user & counsellor names
       const appointments = await Appointment.find({
-        date: { $gte: now, $lte: oneHourLater },
-        status: "booked",
-        reminderSent: { $ne: true }, // make sure we don't send twice
-      }).populate("userId");
+        scheduled_at: { $gte: windowStart, $lt: windowEnd },
+        status: "scheduled",
+        reminderSent: false,
+      })
+        .populate("user_id", "fullname")
+        .populate("counsellor_id", "fullname");
 
-      // 2️⃣ Send reminders
       for (const appt of appointments) {
-        // Save notification
+        const userName = appt.user_id.fullname;
+        const counsellorName = appt.counsellor_id.fullname;
+
+        // 1️⃣ Notification for user
+        const userMessage = `Hi ${userName}, your appointment with ${counsellorName} starts at ${appt.scheduled_at.toLocaleString()}`;
         await Notification.create({
-          userId: appt.userId._id,
+          userId: appt.user_id._id,
           title: "Appointment Reminder",
-          body: `You have an appointment at ${appt.time}`,
+          body: userMessage,
           type: "reminder",
           channel: "in-app",
           meta: { appointmentId: appt._id },
         });
-
-        // Realtime push
-        sendRealtimeNotification(appt.userId._id, {
+        sendRealtimeNotification(appt.user_id._id.toString(), {
           title: "Appointment Reminder",
-          body: `You have an appointment at ${appt.time}`,
+          body: userMessage,
           type: "reminder",
           meta: { appointmentId: appt._id },
         });
 
-        // Mark appointment as reminded
+        // 2️⃣ Notification for counsellor
+        const counsellorMessage = `Hi ${counsellorName}, you have an appointment with ${userName} at ${appt.scheduled_at.toLocaleString()}`;
+        await Notification.create({
+          userId: appt.counsellor_id._id,
+          title: "Upcoming Appointment",
+          body: counsellorMessage,
+          type: "reminder",
+          channel: "in-app",
+          meta: { appointmentId: appt._id },
+        });
+        sendRealtimeNotification(appt.counsellor_id._id.toString(), {
+          title: "Upcoming Appointment",
+          body: counsellorMessage,
+          type: "reminder",
+          meta: { appointmentId: appt._id },
+        });
+
+        // 3️⃣ Mark reminder sent
         appt.reminderSent = true;
         await appt.save();
       }
 
-      if (appointments.length > 0) {
-        console.log(`⏰ Sent ${appointments.length} appointment reminders`);
+      if (appointments.length) {
+        console.log(
+          `⏰ Sent ${appointments.length} personalized appointment reminders`
+        );
       }
-    } catch (error) {
-      console.error("Appointment Reminder Cron Error:", error.message);
+    } catch (err) {
+      console.error("❌ Appointment Reminder Cron Error:", err);
     }
   });
 };

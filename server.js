@@ -83,6 +83,7 @@ const io = new Server(server, {
 // ===============================================================
 import { initSocket } from "./src/socket/socket.js";
 import { startAppointmentReminderCron } from "./src/scheduler/appointmentReminderCron.js";
+import { sendRealtimeNotification } from "./src/realtime/sendRealtimeNotification.js";
 initSocket(io);
 
 // ===============================================================

@@ -218,3 +218,52 @@ export const sendNotificationToAllCounsellors = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// ===============================================================
+// 🧑‍💻 Admin: Send Notification to ALL Users (users + counsellors)
+// ===============================================================
+export const sendNotificationToAll = async (req, res) => {
+  try {
+    const { title, body, type = "system", meta = {} } = req.body;
+
+    // 1️⃣ Fetch all active users (users + counsellors)
+    const users = await User.find({
+      role: { $in: ["user", "counsellor"] },
+    }).select("_id");
+
+    if (!users.length) {
+      return res.status(404).json({ message: "No users found" });
+    }
+
+    // 2️⃣ Prepare notification documents
+    const notifications = users.map((u) => ({
+      userId: u._id,
+      title,
+      body,
+      type,
+      channel: "in-app",
+      meta,
+    }));
+
+    // 3️⃣ Save notifications in bulk
+    await Notification.insertMany(notifications);
+
+    // 4️⃣ Emit realtime notifications (only online users will receive)
+    users.forEach((u) => {
+      sendRealtimeNotification(u._id.toString(), {
+        title,
+        body,
+        type,
+        meta,
+      });
+    });
+
+    res.json({
+      success: true,
+      sentTo: users.length,
+    });
+  } catch (error) {
+    console.error("Broadcast ALL Notification Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
