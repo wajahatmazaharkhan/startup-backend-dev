@@ -1,14 +1,28 @@
 import { Notification } from "../models/Notifications.model.js";
+import { User } from "../models/User.models.js";
+import { sendRealtimeNotification } from "../realtime/sendRealtimeNotification.js";
 
+// ===============================================================
+// 📣 Create Notification
+// ===============================================================
 export const createNotification = async (req, res) => {
   try {
     const { title, body, channel, type, meta } = req.body;
     console.log(req.user._id, req.user.userId);
+
     const notification = await Notification.create({
       userId: req.user.userId,
       title,
       body,
       channel,
+      type,
+      meta,
+    });
+
+    // Emit real-time notification
+    sendRealtimeNotification(req.user.userId, {
+      title,
+      body,
       type,
       meta,
     });
@@ -19,6 +33,9 @@ export const createNotification = async (req, res) => {
   }
 };
 
+// ===============================================================
+// 📥 Get Notifications
+// ===============================================================
 export const getNotifications = async (req, res) => {
   try {
     const query = { userId: req.user.userId };
@@ -38,6 +55,9 @@ export const getNotifications = async (req, res) => {
   }
 };
 
+// ===============================================================
+// 📌 Get Notification by ID
+// ===============================================================
 export const getNotificationById = async (req, res) => {
   try {
     const notification = await Notification.findOne({
@@ -55,6 +75,9 @@ export const getNotificationById = async (req, res) => {
   }
 };
 
+// ===============================================================
+// ✅ Mark as Read
+// ===============================================================
 export const markAsRead = async (req, res) => {
   try {
     const notification = await Notification.findOneAndUpdate(
@@ -73,7 +96,9 @@ export const markAsRead = async (req, res) => {
   }
 };
 
-//optional
+// ===============================================================
+// 🔄 Optional: Update Notification
+// ===============================================================
 export const updateNotification = async (req, res) => {
   try {
     const notification = await Notification.findOneAndUpdate(
@@ -92,6 +117,9 @@ export const updateNotification = async (req, res) => {
   }
 };
 
+// ===============================================================
+// ❌ Delete Notification
+// ===============================================================
 export const deleteNotification = async (req, res) => {
   try {
     const notification = await Notification.findOneAndDelete({
@@ -109,11 +137,84 @@ export const deleteNotification = async (req, res) => {
   }
 };
 
+// ===============================================================
+// 🗑️ Clear All Notifications
+// ===============================================================
 export const clearAllNotifications = async (req, res) => {
   try {
     await Notification.deleteMany({ userId: req.user.userId });
     res.json({ message: "All notifications cleared" });
   } catch (error) {
     res.status(500).json({ message: "Failed to clear notifications" });
+  }
+};
+
+// ===============================================================
+// 🧑‍💻 Admin: Send Notification to All Users
+// ===============================================================
+export const sendNotificationToAllUsers = async (req, res) => {
+  try {
+    const { title, body, type = "system", meta = {} } = req.body;
+
+    // 1. Fetch all users (excluding admin if needed)
+    const users = await User.find({ role: "user" }).select("_id");
+
+    // 2. Prepare notifications
+    const notifications = users.map((u) => ({
+      userId: u._id,
+      title,
+      body,
+      type,
+      channel: "in-app",
+      meta,
+    }));
+
+    // 3. Save in DB (bulk insert)
+    await Notification.insertMany(notifications);
+
+    // 4. Emit real-time to online users
+    users.forEach((u) => {
+      sendRealtimeNotification(u._id, { title, body, type, meta });
+    });
+
+    res.json({
+      success: true,
+      sentTo: users.length,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ===============================================================
+// 🧑‍💻 Admin: Send Notification to All Counsellors
+// ===============================================================
+export const sendNotificationToAllCounsellors = async (req, res) => {
+  try {
+    const { title, body, type = "system", meta = {} } = req.body;
+
+    const counsellors = await User.find({ role: "counsellor" }).select("_id");
+
+    const notifications = counsellors.map((c) => ({
+      userId: c._id,
+      title,
+      body,
+      type,
+      channel: "in-app",
+      meta,
+    }));
+
+    await Notification.insertMany(notifications);
+
+    counsellors.forEach((c) => {
+      sendRealtimeNotification(c._id, { title, body, type, meta });
+    });
+
+    res.json({
+      success: true,
+      sentTo: counsellors.length,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

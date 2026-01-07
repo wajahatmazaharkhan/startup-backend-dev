@@ -7,8 +7,12 @@ import {
   updateNotification,
   deleteNotification,
   clearAllNotifications,
+  sendNotificationToAllUsers,
+  sendNotificationToAllCounsellors,
 } from "../controllers/Notifications.controller.js";
-import authMiddleware from "../middlewares/auth.middlewares.js";
+import authMiddleware, {
+  adminVerify,
+} from "../middlewares/auth.middlewares.js";
 
 export const notificationRouter = express.Router();
 
@@ -19,3 +23,16 @@ notificationRouter.patch("/:id/read", authMiddleware, markAsRead);
 notificationRouter.patch("/:id", authMiddleware, updateNotification);
 notificationRouter.delete("/:id", authMiddleware, deleteNotification);
 notificationRouter.delete("/", authMiddleware, clearAllNotifications);
+
+// admins only
+notificationRouter.post(
+  "/broadcast/users",
+  adminVerify,
+  sendNotificationToAllUsers
+);
+
+notificationRouter.post(
+  "/broadcast/counsellors",
+  adminVerify,
+  sendNotificationToAllCounsellors
+);

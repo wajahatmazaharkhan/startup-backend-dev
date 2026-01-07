@@ -79,6 +79,13 @@ const io = new Server(server, {
 });
 
 // ===============================================================
+// 🔗 Initialize Socket.IO (moved logic)
+// ===============================================================
+import { initSocket } from "./src/socket/socket.js";
+import { startAppointmentReminderCron } from "./src/scheduler/appointmentReminderCron.js";
+initSocket(io);
+
+// ===============================================================
 // 🌐 CORS Options
 // ===============================================================
 const corsOptions = {
@@ -155,102 +162,6 @@ app.use("/api/message", dynamicAuth, messageRouter);
 app.use("/api/admin", adminVerify, AdminRouter);
 app.use("/api", dynamicAuth, RazorpayRouter);
 app.use("/api/notifications", notificationRouter);
-// ===============================================================
-// 🔗 Socket.IO Logic
-// ===============================================================
-let onlineUsers = new Map();
-
-io.on("connection", (socket) => {
-  console.log("🟢 User connected:", socket.id);
-
-  // User joins with userId
-  socket.on("addUser", async (userId) => {
-    onlineUsers.set(userId, socket.id);
-
-    // Update lastSeen
-    try {
-      await User.findByIdAndUpdate(userId, { lastSeen: new Date() });
-    } catch (err) {
-      console.error("Failed updating lastSeen:", err);
-    }
-
-    // Send current online users to this user
-    socket.emit("getUsers", Array.from(onlineUsers.keys()));
-
-    // Broadcast new user online
-    io.emit("userOnline", userId);
-  });
-
-  // Send message event
-  socket.on("sendMessage", async (data) => {
-    const { conversationId, senderId, receiverId, text, emoji, attachments } =
-      data;
-
-    try {
-      const receiverSocketId = onlineUsers.get(receiverId);
-
-      // Fetch the latest message from DB (for decryption)
-      const latestMsg = await Message.findOne({
-        conversation: conversationId,
-        sender: senderId,
-      })
-        .sort({ createdAt: -1 })
-        .lean();
-
-      let decryptedText = text;
-      if (latestMsg?.key && latestMsg?.text) {
-        try {
-          decryptedText = await decryptText(latestMsg.key, latestMsg.text);
-        } catch (err) {
-          console.error("Decryption failed:", err);
-          decryptedText = "[decryption failed]";
-        }
-      }
-
-      // Emit to receiver
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("getMessage", {
-          conversationId,
-          senderId,
-          text: decryptedText,
-          emoji,
-          attachments,
-          createdAt: new Date(),
-        });
-      }
-    } catch (err) {
-      console.error("sendMessage socket error:", err);
-    }
-  });
-
-  // User disconnects
-  socket.on("disconnect", async () => {
-    console.log("🔴 User disconnected:", socket.id);
-    let disconnectedUser = null;
-
-    for (const [userId, sockId] of onlineUsers.entries()) {
-      if (sockId === socket.id) {
-        disconnectedUser = userId;
-        onlineUsers.delete(userId);
-        break;
-      }
-    }
-
-    if (disconnectedUser) {
-      // Update lastSeen
-      try {
-        await User.findByIdAndUpdate(disconnectedUser, {
-          lastSeen: new Date(),
-        });
-      } catch (err) {
-        console.error("Error updating lastSeen on disconnect:", err);
-      }
-
-      // Broadcast offline
-      io.emit("userOffline", disconnectedUser);
-    }
-  });
-});
 
 // ===============================================================
 // 🟢 Connect to DB & Start Server
@@ -259,4 +170,8 @@ connectToDatabase().then(() => {
   server.listen(port, () => {
     console.log(`Server is running on port: ${port}`);
   });
+  // ===========================================================
+  // ⏰ Start cron jobs here
+  // ===========================================================
+  startAppointmentReminderCron();
 });
