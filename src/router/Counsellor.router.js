@@ -20,14 +20,17 @@ counsellorRouter.post(
 
 counsellorRouter.post("/login", CounsellorController.CounsellorLogin);
 counsellorRouter.get("/getcounsellor", CounsellorController.getallCounsellor);
-counsellorRouter.get("/getrandomcounsellor", CounsellorController.getRandomCounsellors);
+counsellorRouter.get(
+  "/getrandomcounsellor",
+  CounsellorController.getRandomCounsellors
+);
 
 counsellorRouter.get(
   "/getcounsellorbyemail/:email",
   CounsellorController.getCounsellorByEmail
 );
 
-counsellorRouter.get('/get/:id',CounsellorController.getCounsellorById);
+counsellorRouter.get("/get/:id", CounsellorController.getCounsellorById);
 
 counsellorRouter.put(
   "/update",
@@ -43,4 +46,7 @@ counsellorRouter.put(
   CounsellorController.updateCounsellor
 );
 
-counsellorRouter.get("/getcounsellorbyslug/:slug",CounsellorController.getCounsellorBySlug);
+counsellorRouter.get(
+  "/getcounsellorbyslug/:slug",
+  CounsellorController.getCounsellorBySlug
+);

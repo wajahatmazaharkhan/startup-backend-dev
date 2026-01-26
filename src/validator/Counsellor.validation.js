@@ -1,19 +1,20 @@
-import { email, z } from "zod";
+import { z } from "zod";
 
 export const CounsellorValidation = z.object({
+  // Step 1: Personal Information
   fullname: z
     .string()
-    .min(3, "Full name must be at least 3 characters")
+    .min(2, "Full name must be at least 2 characters")
     .max(50, "Full name is too long")
     .trim(),
 
-  email: z.email(),
+  email: z.string().email("Invalid email address"),
+
+  Password: z.string().min(8, "Password must be at least 8 characters"),
 
   contact_number: z
     .string()
     .regex(/^[0-9]{10}$/, "Phone number must be 10 digits"),
-
-  Password: z.string().min(6, "Password must be at least 6 characters"),
 
   dob: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: "Invalid date of birth",
@@ -23,43 +24,80 @@ export const CounsellorValidation = z.object({
     errorMap: () => ({ message: "Invalid gender value" }),
   }),
 
+  languages: z.string().min(1, "Preferred language is required"),
+
   timezone: z.string().min(2, "Timezone is required"),
 
-  languages: z.string().min(2, "Preferred language is required"),
+  // Step 2: Professional Details
+  counselling_type: z.string().min(1, "Counselling type is required"),
 
-  counselling_type: z.string(),
+  specialties: z.string().min(1, "Specialty is required"),
 
-  specialties: z.string().min(1, "spaciality is important"),
+  bio: z.string().min(10, "Bio must be at least 10 characters"),
 
-  bio: z.string().min(2, "bio is important"),
+  years_experience: z.coerce
+    .number()
+    .min(0, "Years of experience must be 0 or greater"),
 
-  years_experience: z.string().min(1, "year experince is important"),
+  slug: z.enum(
+    ["mental-health", "wellness-therapy", "sexual-health", "womens-health"],
+    {
+      errorMap: () => ({ message: "Invalid service category" }),
+    }
+  ),
 
-  languages: z.string().min(1, "languages is important"),
+  // Step 3: Availability & Pricing
+  hourly_rate: z.coerce.number().positive("Hourly rate must be greater than 0"),
 
-  hourly_rate: z.string(),
-  displayLabel: z.string(),
-  availabilityType: z.enum(["fixed", "recurring", "always"]),
+  displayLabel: z.string().optional(),
+
+  availabilityType: z.enum(["fixed", "recurring", "always"], {
+    errorMap: () => ({ message: "Invalid availability type" }),
+  }),
+
   weeklyAvailability: z
-    .array(
-      z.object({
-        dayOfWeek: z.coerce.number().min(0).max(6), // 0=Sunday, 1=Monday...
-        startTime: z
-          .string()
-          .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:mm)"),
-        endTime: z
-          .string()
-          .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:mm)"),
-      })
-    )
-    .min(1, "At least one day of availability is required"),
+    .string()
+    .transform((str, ctx) => {
+      try {
+        return JSON.parse(str);
+      } catch (e) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Invalid JSON format for weeklyAvailability",
+        });
+        return z.NEVER;
+      }
+    })
+    .pipe(
+      z
+        .array(
+          z.object({
+            dayOfWeek: z.coerce.number().min(0).max(6),
+            startTime: z
+              .string()
+              .regex(
+                /^([01]\d|2[0-3]):([0-5]\d)$/,
+                "Invalid time format (HH:mm)"
+              ),
+            endTime: z
+              .string()
+              .regex(
+                /^([01]\d|2[0-3]):([0-5]\d)$/,
+                "Invalid time format (HH:mm)"
+              ),
+            isAvailable: z.boolean().default(true),
+          })
+        )
+        .min(1, "At least one day of availability is required")
+    ),
 
+  // Step 4: Session Preferences
   session_type: z.enum(["Video Session", "Voice Session", "Chat Session"], {
     errorMap: () => ({ message: "Invalid session type" }),
   }),
 });
 
-export const CounsellorLoginValiation = z.object({
-  email: z.email(),
-  Password: z.string(),
+export const CounsellorLoginValidation = z.object({
+  email: z.string().email("Invalid email address"),
+  Password: z.string().min(1, "Password is required"),
 });

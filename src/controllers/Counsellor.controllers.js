@@ -1,10 +1,7 @@
 import { User } from "../models/User.models.js";
 import { Counsellor } from "../models/Counsellor.models.js";
 import { ImagekitFileUploader } from "../services/imagekit.services.js";
-import {
-  CounsellorLoginValiation,
-  CounsellorValidation,
-} from "../validator/Counsellor.validation.js";
+import { CounsellorValidation } from "../validator/Counsellor.validation.js";
 import bcrypt from "bcryptjs";
 import { asyncHandler } from "../utils/async-handler.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -35,9 +32,6 @@ export const CounsellorSignup = asyncHandler(async (req, res) => {
     role: "counsellor",
   });
 
-  /* ---------------------------------------------------------
-       HANDLE FILES UPLOAD VIA MULTER
-    --------------------------------------------------------- */
   const f = req.files;
 
   console.log("BODY:", req.body);
@@ -58,9 +52,43 @@ export const CounsellorSignup = asyncHandler(async (req, res) => {
   const experienceLetter = await uploadIfExists(f?.experince_letter?.[0]);
   const additionalDocs = await uploadIfExists(f?.additional_documents?.[0]);
 
-  /* ---------------------------------------------------------
-           CREATE COUNSELLOR PROFILE
-        --------------------------------------------------------- */
+  // FIX: Build documents object conditionally, only including fields that have values
+  const documents = {};
+
+  // Required fields - add error handling
+  if (!governmentID?.url) {
+    return res.status(400).json(new ApiError(400, "Government ID is required"));
+  }
+  if (!profilePicture?.url) {
+    return res
+      .status(400)
+      .json(new ApiError(400, "Profile picture is required"));
+  }
+  if (!qualificationCert?.url) {
+    return res
+      .status(400)
+      .json(new ApiError(400, "Qualification certificates are required"));
+  }
+  if (!licenceDoc?.url) {
+    return res
+      .status(400)
+      .json(new ApiError(400, "Professional license is required"));
+  }
+
+  // Add required fields
+  documents.government_id = governmentID.url;
+  documents.profile_picture = profilePicture.url;
+  documents.qualification_certificates = qualificationCert.url;
+  documents.licence = licenceDoc.url;
+
+  // Add optional fields only if they exist
+  if (experienceLetter?.url) {
+    documents.experince_letter = experienceLetter.url;
+  }
+  if (additionalDocs?.url) {
+    documents.additional_documents = additionalDocs.url;
+  }
+
   const profile = await Counsellor.create({
     user_id: user._id,
     fullname: data.fullname,
@@ -71,7 +99,6 @@ export const CounsellorSignup = asyncHandler(async (req, res) => {
     counselling_type: data.counselling_type,
     specialties: data.specialties,
     bio: data.bio,
-    // qualifications: data.qualifications,
     years_experience: data.years_experience,
     languages: data.languages,
     hourly_rate: data.hourly_rate,
@@ -81,15 +108,7 @@ export const CounsellorSignup = asyncHandler(async (req, res) => {
     displayLabel: data.displayLabel,
     availabilityType: data.availabilityType,
     weeklyAvailability: data.weeklyAvailability,
-    // STORE DOCUMENTS IN PROPER NESTED STRUCTURE
-    documents: {
-      government_id: governmentID?.url,
-      profile_picture: profilePicture?.url,
-      qualification_certificates: qualificationCert?.url || null,
-      licence: licenceDoc?.url,
-      experince_letter: experienceLetter?.url || null,
-      additional_documents: additionalDocs?.url || null,
-    },
+    documents: documents, // Use the conditionally built object
   });
 
   return res
