@@ -1,6 +1,7 @@
 import passport from "passport";
 import { Strategy as GooglStrategy } from "passport-google-oauth20";
 import { User } from "../models/User.models.js";
+import { OAuthError } from "../utils/OAuthError.js";
 
 passport.deserializeUser((id, done) => {
   User.findById(id)
@@ -25,9 +26,45 @@ passport.use(
       callbackURL: "/auth/google/callback",
       userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
     },
-    (accessToken, refreshToken, profile, done) => {
+    async (accessToken, refreshToken, profile, done) => {
       // Data is nested in profile._json
       const { _json } = profile;
+      const email = profile.emails?.[0]?.value;
+      if (!email) {
+        return done(
+          null,
+          false,
+          new OAuthError("EMAIL_NOT_AVAILABLE", "Email not provided by Google")
+        );
+      }
+
+      // Check by googleId
+      let user = await User.findOne({ googleId: profile.id });
+      if (user) {
+        return done(null, user);
+      }
+      // Check by email
+      user = await User.findOne({ email });
+
+      if (user) {
+        // Email exists but Google not linked
+        // OPTION A: auto-link Google
+        user.googleId = profile.id;
+        user.isVerified = true;
+        await user.save();
+
+        return done(null, user);
+
+        // OPTION B (instead): block + UI message
+        // return done(
+        //   null,
+        //   false,
+        //   new OAuthError(
+        //     "EMAIL_ALREADY_EXISTS",
+        //     "Account already exists with this email"
+        //   )
+        // );
+      }
 
       User.findOne({ googleId: profile.id })
         .then((existingUser) => {
@@ -58,6 +95,17 @@ passport.use(
           }
         })
         .catch((err) => {
+          // Safety net for race condition
+          if (err.code === 11000) {
+            return done(
+              null,
+              false,
+              new OAuthError(
+                "EMAIL_ALREADY_EXISTS",
+                "Account already exists with this email"
+              )
+            );
+          }
           console.error("Error during user lookup:", err);
           done(err);
         });

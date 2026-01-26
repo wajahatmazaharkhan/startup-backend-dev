@@ -38,7 +38,10 @@ const isProd = process.env.NODE_ENV === "production";
 
 userRouter.get(
   "/auth/google/callback",
-  passport.authenticate("google", { failureRedirect: "/login" }),
+  passport.authenticate("google", {
+    failureRedirect: "/api/user/auth/failure",
+    failureMessage: true,
+  }),
   (req, res, next) => {
     try {
       const token = req.user.generateAuthToken();
@@ -49,6 +52,28 @@ userRouter.get(
     }
   }
 );
+
+userRouter.get("/auth/failure", (req, res) => {
+  const error = req.session.messages?.[0];
+
+  if (error?.code === "EMAIL_ALREADY_EXISTS") {
+    return res.status(409).json({
+      success: false,
+      error: {
+        code: "EMAIL_ALREADY_EXISTS",
+        message: "Account already exists. Please log in instead.",
+      },
+    });
+  }
+
+  res.status(400).json({
+    success: false,
+    error: {
+      code: "OAUTH_FAILED",
+      message: "Google authentication failed",
+    },
+  });
+});
 
 userRouter.post("/logout", (req, res) => {
   const isProd = process.env.NODE_ENV === "production";
