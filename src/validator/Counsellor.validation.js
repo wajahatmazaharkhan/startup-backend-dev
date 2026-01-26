@@ -38,8 +38,21 @@ export const CounsellorValidation = z.object({
   languages: z.string().min(1, "languages is important"),
 
   hourly_rate: z.string(),
-
-  availability: z.string(),
+  displayLabel: z.string(),
+  availabilityType: z.enum(["fixed", "recurring", "always"]),
+  weeklyAvailability: z
+    .array(
+      z.object({
+        dayOfWeek: z.coerce.number().min(0).max(6), // 0=Sunday, 1=Monday...
+        startTime: z
+          .string()
+          .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:mm)"),
+        endTime: z
+          .string()
+          .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:mm)"),
+      })
+    )
+    .min(1, "At least one day of availability is required"),
 
   session_type: z.enum(["Video Session", "Voice Session", "Chat Session"], {
     errorMap: () => ({ message: "Invalid session type" }),

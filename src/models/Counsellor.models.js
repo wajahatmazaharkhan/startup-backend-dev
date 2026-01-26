@@ -92,10 +92,29 @@ const counsellorSchema = new mongoose.Schema(
       required: true,
     },
 
-    availability: {
+    displayLabel: {
       type: String,
-      required: true,
+      // required: false,
     },
+    availabilityType: {
+      type: String,
+      enum: ["fixed", "recurring", "always"],
+      default: "fixed,",
+    },
+
+    weeklyAvailability: [
+      {
+        dayOfWeek: {
+          type: Number,
+          required: true,
+          min: 0,
+          max: 6, // 0=Sunday, 1=Monday, etc.
+        },
+        startTime: { type: String, required: true }, // e.g., "09:00"
+        endTime: { type: String, required: true }, // e.g., "17:00"
+        isAvailable: { type: Boolean, default: true },
+      },
+    ],
 
     calendar_integration: {
       type: Boolean,

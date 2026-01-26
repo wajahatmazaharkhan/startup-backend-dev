@@ -9,11 +9,7 @@ import {
 const AppointmentRouter = express.Router();
 
 // create user-books-appointment
-AppointmentRouter.post(
-  "/",
-  dynamicAuth,
-  AppointmentController.createAppointment
-);
+AppointmentRouter.post("/create",dynamicAuth, AppointmentController.createAppointment);
 
 // read
 AppointmentRouter.get(

@@ -78,7 +78,9 @@ export const CounsellorSignup = asyncHandler(async (req, res) => {
     availability: data.availability,
     session_type: data.session_type,
     calendar_integration: data.calendar_integration || false,
-
+    displayLabel: data.displayLabel,
+    availabilityType: data.availabilityType,
+    weeklyAvailability: data.weeklyAvailability,
     // STORE DOCUMENTS IN PROPER NESTED STRUCTURE
     documents: {
       government_id: governmentID?.url,
