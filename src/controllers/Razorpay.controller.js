@@ -25,6 +25,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { Payment } from "../models/Payment.model.js";
 import crypto from "crypto";
+import { Appointment } from "../models/Appointments.model.js";
 
 export const createRazorpayOrder = async (req, res) => {
   let options;
@@ -59,8 +60,12 @@ export const getRazorpayKeys = asyncHandler(async (req, res) => {
 
 export const paymentVerification = async (req, res) => {
   // Avoiding Async-handler because inner try-catch block is required.
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
-    req.body;
+  const {
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
+    appointmentId,
+  } = req.body;
   console.log(req.body);
   console.log("// --- CHECKING PAYMENT STATUS --- //");
   const body = razorpay_order_id + "|" + razorpay_payment_id;
@@ -77,17 +82,37 @@ export const paymentVerification = async (req, res) => {
         .status(400)
         .json(new ApiError(400, "Invalid Payment Signature"));
     }
+    if (!appointmentId) {
+      return res
+        .status(400)
+        .json(new ApiError(400, "Appointment ID is required."));
+    }
+    const appointmentExists = await Appointment.findById(appointmentId);
+    if (!appointmentExists) {
+      return res.status(404).json(new ApiError("Appointment not found"));
+    }
+    appointmentExists.payment_status = "successful";
+    await appointmentExists.save();
     console.log("PAYMENT VERIFIED SUCCESSFULLY");
     await Payment.create({
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
+      appointment_id: appointmentId,
     });
     return res
       .status(200)
       .json(new ApiResponse(200, null, "Payment Verified Successfully"));
   } catch (error) {
     console.error("Payment verification error:", error);
+    const appointmentExists = Appointment.findByIdAndDelete(appointmentId);
+    if (!appointmentExists) {
+      return res
+        .status(500)
+        .json(
+          new ApiError("Failed to cancel appointment due to payment failure.")
+        );
+    }
     return res
       .status(500)
       .json(new ApiError(500, "Payment verification failed"));

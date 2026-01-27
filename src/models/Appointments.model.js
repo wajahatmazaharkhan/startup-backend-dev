@@ -58,7 +58,10 @@ const appointmentsSchema = new mongoose.Schema(
       default: false,
       select: false,
     },
-
+    payment_status: {
+      type: String,
+      default: "pending",
+    },
     // ===========================================================
     // ⏰ Appointment reminder flag
     // ===========================================================

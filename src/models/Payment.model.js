@@ -14,6 +14,9 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    appointment_id: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
