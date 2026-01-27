@@ -105,14 +105,14 @@ export const paymentVerification = async (req, res) => {
       .json(new ApiResponse(200, null, "Payment Verified Successfully"));
   } catch (error) {
     console.error("Payment verification error:", error);
-    const appointmentExists = Appointment.findByIdAndDelete(appointmentId);
-    if (!appointmentExists) {
-      return res
-        .status(500)
-        .json(
-          new ApiError("Failed to cancel appointment due to payment failure.")
-        );
-    }
+    // const appointmentExists = Appointment.findByIdAndDelete(appointmentId);
+    // if (!appointmentExists) {
+    //   return res
+    //     .status(500)
+    //     .json(
+    //       new ApiError("Failed to cancel appointment due to payment failure.")
+    //     );
+    // }
     return res
       .status(500)
       .json(new ApiError(500, "Payment verification failed"));
