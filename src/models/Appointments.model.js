@@ -15,6 +15,11 @@ const appointmentsSchema = new mongoose.Schema(
       index: true,
     },
 
+    counsellor_approved: {
+      type: Boolean,
+      default: false,
+    },
+
     scheduled_at: {
       type: Date,
       required: true,

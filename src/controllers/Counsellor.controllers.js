@@ -1,7 +1,10 @@
 import { User } from "../models/User.models.js";
 import { Counsellor } from "../models/Counsellor.models.js";
 import { ImagekitFileUploader } from "../services/imagekit.services.js";
-import { CounsellorValidation } from "../validator/Counsellor.validation.js";
+import {
+  CounsellorLoginValidation,
+  CounsellorValidation,
+} from "../validator/Counsellor.validation.js";
 import bcrypt from "bcryptjs";
 import { asyncHandler } from "../utils/async-handler.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -117,7 +120,7 @@ export const CounsellorSignup = asyncHandler(async (req, res) => {
 });
 
 export const CounsellorLogin = asyncHandler(async (req, res) => {
-  const data = CounsellorLoginValiation.parse(req.body);
+  const data = CounsellorLoginValidation.parse(req.body);
 
   const userExisted = await User.findOne({ email: data.email });
   const counsellor = await Counsellor.findOne({ email: data.email });
@@ -135,12 +138,7 @@ export const CounsellorLogin = asyncHandler(async (req, res) => {
   if (!counsellor.Admin_approved) {
     return res
       .status(403)
-      .json(
-        new ApiError(
-          403,
-          "Your profile is not approved by admin yet after approved you can login"
-        )
-      );
+      .json(new ApiError(403, "Account awaiting admin approval"));
   }
 
   const user = await userExisted.comparePassword(data.Password);

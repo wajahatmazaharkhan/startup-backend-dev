@@ -4,6 +4,7 @@ import { Counsellor } from "../models/Counsellor.models.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
+import mongoose from "mongoose";
 
 // ........Get All Appointments.................
 export const getAllAppointments = asyncHandler(async (req, res) => {
@@ -175,9 +176,15 @@ export const getCounsellorAppointments = asyncHandler(async (req, res) => {
     sort = "asc",
   } = req.query;
 
-  const query = {
-    counsellor_id: req.user._id,
-  };
+  // Find counsellor document using logged-in user
+  const counsellor = await Counsellor.findOne({ user_id: req.user._id });
+
+  if (!counsellor) {
+    return res.status(404).json({ message: "Counsellor profile not found" });
+  }
+
+  //Use counsellor._id for appointment query
+  const query = { counsellor_id: counsellor._id };
 
   const now = new Date();
 
@@ -187,9 +194,7 @@ export const getCounsellorAppointments = asyncHandler(async (req, res) => {
     query.scheduled_at = { $lt: now };
   }
 
-  if (status) {
-    query.status = status;
-  }
+  if (status) query.status = status;
 
   if (from || to) {
     query.scheduled_at = {
@@ -199,10 +204,10 @@ export const getCounsellorAppointments = asyncHandler(async (req, res) => {
     };
   }
 
-  const skip = (page - 1) * limit;
+  const skip = (Number(page) - 1) * Number(limit);
 
   const appointments = await Appointment.find(query)
-    .populate("user_id", "name email")
+    .populate("user_id", "fullname email profilePic")
     .sort({ scheduled_at: sort === "desc" ? -1 : 1 })
     .skip(skip)
     .limit(Number(limit));
@@ -284,4 +289,59 @@ export const deleteAppointment = asyncHandler(async (req, res) => {
   res
     .status(200)
     .json(new ApiResponse(200, null, "appointment deletion successful (soft)"));
+});
+
+export const approveAppointmentByCounsellor = asyncHandler(async (req, res) => {
+  const { appointmentId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+    return res.status(400).json({ message: "Invalid appointment ID" });
+  }
+
+  // Step 1: Get counsellor profile from logged-in user
+  const counsellor = await Counsellor.findOne({ user_id: req.user._id });
+
+  if (!counsellor) {
+    return res.status(403).json({ message: "Counsellor profile not found" });
+  }
+
+  // Step 2: Find appointment
+  const appointment = await Appointment.findById(appointmentId);
+
+  if (!appointment) {
+    return res.status(404).json({ message: "Appointment not found" });
+  }
+
+  // Step 3: Security — only owner counsellor can approve
+  if (!appointment.counsellor_id.equals(counsellor._id)) {
+    return res.status(403).json({ message: "Not authorized" });
+  }
+
+  // Step 4: Cannot approve past session
+  if (appointment.scheduled_at < new Date()) {
+    return res.status(400).json({ message: "Cannot approve past session" });
+  }
+
+  // Step 5: Prevent invalid state changes
+  if (
+    appointment.status === "cancelled" ||
+    appointment.status === "completed"
+  ) {
+    return res.status(400).json({ message: "Cannot approve this session" });
+  }
+
+  if (appointment.counsellor_approved) {
+    return res.status(400).json({ message: "Already approved" });
+  }
+
+  // Step 6: Approve booking
+  appointment.counsellor_approved = true;
+
+  await appointment.save();
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, appointment, "Appointment approved successfully")
+    );
 });

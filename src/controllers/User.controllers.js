@@ -73,6 +73,12 @@ export const Login = asyncHandler(async (req, res) => {
     return res.status(404).json(new ApiError(404, "User Account not found"));
   }
 
+  if (userExisted.role === "counsellor") {
+    return res
+      .status(401)
+      .json(new ApiError(401, "Please login as counsellor"));
+  }
+
   const user = await userExisted.comparePassword(data.Password);
 
   await User.updateOne(

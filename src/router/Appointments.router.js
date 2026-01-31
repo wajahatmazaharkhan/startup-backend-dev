@@ -9,7 +9,11 @@ import {
 const AppointmentRouter = express.Router();
 
 // create user-books-appointment
-AppointmentRouter.post("/create",dynamicAuth, AppointmentController.createAppointment);
+AppointmentRouter.post(
+  "/create",
+  dynamicAuth,
+  AppointmentController.createAppointment
+);
 
 // read
 AppointmentRouter.get(
@@ -23,8 +27,13 @@ AppointmentRouter.get(
   counsellorVerify,
   AppointmentController.getCounsellorAppointments
 );
-// AppointmentRouter.get("/", AppointmentController.getAllAppointments);
-// AppointmentRouter.get("/:id", AppointmentController.getAppointmentById);
+
+AppointmentRouter.patch(
+  "/:appointmentId/approve",
+  dynamicAuth,
+  counsellorVerify,
+  AppointmentController.approveAppointmentByCounsellor
+);
 
 // update
 AppointmentRouter.patch(
