@@ -162,9 +162,9 @@ export const sendWelcomeEmail = async (name, to) => {
       html: htmlContent,
     });
 
-    console.log("✅ Welcome email sent to:", to);
+    console.log("Welcome email sent to:", to);
   } catch (error) {
-    console.error("❌ Error sending welcome email:", error);
+    console.error("Error sending welcome email:", error);
     throw error;
   }
 };

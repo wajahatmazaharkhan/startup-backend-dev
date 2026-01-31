@@ -42,7 +42,7 @@ export const SignUp = asyncHandler(async (req, res) => {
   if (!newUser) {
     return res.status(400).json(new ApiError(400, "User not created"));
   }
-  sendWelcomeEmail(newUser.fullname, newUser.email);
+  await sendWelcomeEmail(newUser.fullname, newUser.email);
   return res.status(201).json(
     new ApiResponse(
       201,
@@ -121,6 +121,7 @@ export const Login = asyncHandler(async (req, res) => {
 // admin Login controller function //
 export const amdinLogin = asyncHandler(async (req, res) => {
   const data = AdminLoginValidation.parse(req.body);
+  console.log("admin login", data);
   const userExisted = await User.findOne({ email: data.email });
   if (!userExisted) {
     return res.status(404).json(new ApiError(404, "User Not Found"));
@@ -130,7 +131,7 @@ export const amdinLogin = asyncHandler(async (req, res) => {
     return res.status(402).json(new ApiError(402, "Only Admins can Login"));
   }
 
-  const user = await userExisted.comparePassword(data.Password);
+  const user = await userExisted.comparePassword(data.password);
   if (!user) {
     return res.status(400).json(new ApiError(400, "Invalid Email or Password"));
   }
