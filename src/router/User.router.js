@@ -94,7 +94,6 @@ userRouter.post("/logout", (req, res) => {
     res.clearCookie("access_token", cookieOptions);
     res.clearCookie("refresh_token", cookieOptions);
     res.clearCookie("authToken", cookieOptions);
-
     return res
       .status(200)
       .json(new ApiResponse(200, null, "Logged out successfully"));

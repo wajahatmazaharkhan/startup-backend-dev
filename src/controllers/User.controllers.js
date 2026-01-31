@@ -122,9 +122,7 @@ export const Login = asyncHandler(async (req, res) => {
 // admin Login controller function //
 export const amdinLogin = asyncHandler(async (req, res) => {
   const data = AdminLoginValidation.parse(req.body);
-
   const userExisted = await User.findOne({ email: data.email });
-
   if (!userExisted) {
     return res.status(404).json(new ApiError(404, "User Not Found"));
   }
@@ -134,7 +132,6 @@ export const amdinLogin = asyncHandler(async (req, res) => {
   }
 
   const user = await userExisted.comparePassword(data.Password);
-
   if (!user) {
     return res.status(400).json(new ApiError(400, "Invalid Email or Password"));
   }
