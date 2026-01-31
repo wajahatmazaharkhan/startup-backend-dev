@@ -340,7 +340,7 @@ export const getCounsellorBySlug = asyncHandler(async (req, res) => {
   }
 
   const counsellors = await Counsellor.find({ slug }).select(
-    "fullname email counselling_type documents.profile_picture"
+    "fullname email counselling_type documents.profile_picture hourly_rate years_experience specialties"
   );
 
   if (!counsellors) {
