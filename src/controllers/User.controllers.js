@@ -453,56 +453,9 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
 
 //Admin only APIs
 
-export const getAllUsers = asyncHandler(async (req, res, next) => {
-  const {
-    page = 1,
-    limit = 10,
-    search,
-    role,
-    sortBy = "createdAt",
-    sortType = "desc",
-  } = req.query;
-
-  const query = {};
-
-  if (search) {
-    query.$or = [
-      { fullname: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } },
-    ];
-  }
-
-  if (role) {
-    query.role = role;
-  }
-
-  const skip = (parseInt(page) - 1) * parseInt(limit);
-
-  const users = await User.find(query)
-    .sort({ [sortBy]: sortType === "desc" ? -1 : 1 })
-    .skip(skip)
-    .limit(parseInt(limit));
-
-  const totalUsers = await User.countDocuments(query);
-
-  const totalPages = Math.ceil(totalUsers / parseInt(limit));
-
-  if (!users)
-    return res
-      .status(404)
-      .json(new ApiError(404, "No users found", null, null));
-
-  return res.status(200).json(
-    new ApiResponse(200, {
-      users,
-      pagination: {
-        totalUsers,
-        totalPages,
-        currentPage: parseInt(page),
-        limit: parseInt(limit),
-      },
-    })
-  );
+export const getAllUsers = asyncHandler(async (req, res) => {
+  const users = await User.find().select('-Password -otpExpiry -otp -passwordOtpVerify ')
+  return res.status(200).json(new ApiResponse(200, users, "ok!"));
 });
 
 export const getUserById = asyncHandler(async (req, res, next) => {
